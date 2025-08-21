@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace evaluation_application.Queries;
 
 public sealed class EvaluateFeatureQuery

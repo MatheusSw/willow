@@ -9,17 +9,12 @@ namespace evaluation_api.Controllers;
 
 [ApiController]
 [Route("v1/evaluate")]
-public sealed class EvaluationsController : ControllerBase
+public sealed class EvaluationsController(
+    IEvaluateFeatureQueryHandler handler,
+    IValidateApiKeyQueryHandler apiKeyHandler)
+    : ControllerBase
 {
     private const string ApiKeyHeader = "x-api-key";
-    private readonly IEvaluateFeatureQueryHandler _handler;
-    private readonly IValidateApiKeyQueryHandler _apiKeyHandler;
-
-    public EvaluationsController(IEvaluateFeatureQueryHandler handler, IValidateApiKeyQueryHandler apiKeyHandler)
-    {
-        _handler = handler;
-        _apiKeyHandler = apiKeyHandler;
-    }
 
     [HttpPost]
     public async Task<ActionResult<EvaluateResponse>> Evaluate([FromBody] EvaluateRequest request, CancellationToken cancellationToken)
@@ -38,7 +33,7 @@ public sealed class EvaluationsController : ControllerBase
             return Unauthorized();
         }
 
-        var valid = await _apiKeyHandler.HandleAsync(new ValidateApiKeyQuery { ApiKey = apiKey! }, cancellationToken);
+        var valid = await apiKeyHandler.HandleAsync(new ValidateApiKeyQuery { ApiKey = apiKey! }, cancellationToken);
         if (!valid)
         {
             log.Warning("API key invalid");
@@ -46,7 +41,7 @@ public sealed class EvaluationsController : ControllerBase
             return Unauthorized();
         }
 
-        var result = await _handler.HandleAsync(new EvaluateFeatureQuery
+        var result = await handler.HandleAsync(new EvaluateFeatureQuery
         {
             Project = request.Project,
             Environment = request.Environment,
