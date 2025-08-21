@@ -1,0 +1,96 @@
+﻿using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace evaluation_infrastructure.Db.Migrations
+{
+	/// <inheritdoc />
+	public partial class SeedData : Migration
+	{
+		/// <inheritdoc />
+		protected override void Up(MigrationBuilder migrationBuilder)
+		{
+			// Audit Logs (sample)
+			migrationBuilder.Sql(@"
+INSERT INTO audit_logs (id, actor, action, entity_type, entity_id, before, after)
+VALUES ('70000000-0000-0000-0000-000000000001','seed','insert','organization','00000000-0000-0000-0000-000000000001',NULL,'{""name"":""acme""}')
+ON CONFLICT DO NOTHING;
+");
+			// Organizations
+			migrationBuilder.Sql(@"
+INSERT INTO organizations (id, name) VALUES
+	('00000000-0000-0000-0000-000000000001','acme'),
+	('00000000-0000-0000-0000-000000000002','globex'),
+	('00000000-0000-0000-0000-000000000003','initech')
+ON CONFLICT DO NOTHING;
+");
+
+			// Projects
+			migrationBuilder.Sql(@"
+INSERT INTO projects (id, org_id, name) VALUES
+	('10000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000001','shop'),
+	('10000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000002','portal'),
+	('10000000-0000-0000-0000-000000000003','00000000-0000-0000-0000-000000000003','internal')
+ON CONFLICT DO NOTHING;
+");
+
+			// Environments
+			migrationBuilder.Sql(@"
+INSERT INTO environments (id, project_id, key) VALUES
+	('20000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','prod'),
+	('20000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','staging'),
+	('20000000-0000-0000-0000-000000000003','10000000-0000-0000-0000-000000000002','prod')
+ON CONFLICT DO NOTHING;
+");
+
+			// Features
+			migrationBuilder.Sql(@"
+INSERT INTO features (id, project_id, name, description) VALUES
+	('30000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','checkout_redesign','New checkout UI'),
+	('30000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','recommendations','Personalized recs'),
+	('30000000-0000-0000-0000-000000000003','10000000-0000-0000-0000-000000000002','sso','Single sign-on')
+ON CONFLICT DO NOTHING;
+");
+
+			// Feature States
+			migrationBuilder.Sql(@"
+INSERT INTO feature_states (id, feature_id, environment_id, enabled, reason) VALUES
+	('40000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001',false,'default:false'),
+	('40000000-0000-0000-0000-000000000002','30000000-0000-0000-0000-000000000002','20000000-0000-0000-0000-000000000001',true,'default:true'),
+	('40000000-0000-0000-0000-000000000003','30000000-0000-0000-0000-000000000003','20000000-0000-0000-0000-000000000003',true,'default:true')
+ON CONFLICT DO NOTHING;
+");
+
+			// Rules
+			migrationBuilder.Sql(@"
+INSERT INTO rules (id, feature_id, environment_id, priority, match_type, conditions) VALUES
+	('50000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001',1,'all','[{""attribute"":""orgId"",""op"":""equals"",""value"":""acme""}]'),
+	('50000000-0000-0000-0000-000000000002','30000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001',2,'any','[{""attribute"":""country"",""op"":""equals"",""value"":""us""}]')
+ON CONFLICT DO NOTHING;
+");
+
+			// API Keys (use simple hashes for demo only)
+			migrationBuilder.Sql(@"
+INSERT INTO api_keys (id, org_id, project_id, role, scopes, hashed_key, active) VALUES
+	('60000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','reader',ARRAY['evaluate'],'aGVsbG9fYXBpa2V5XzE=',true),
+	('60000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000002',NULL,'reader',ARRAY['evaluate'],'aGVsbG9fYXBpa2V5XzI=',true)
+ON CONFLICT DO NOTHING;
+");
+		}
+
+		/// <inheritdoc />
+		protected override void Down(MigrationBuilder migrationBuilder)
+		{
+			migrationBuilder.Sql(@"
+DELETE FROM audit_logs WHERE id in ('70000000-0000-0000-0000-000000000001');
+DELETE FROM rules WHERE id in ('50000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000002');
+DELETE FROM feature_states WHERE id in ('40000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000002','40000000-0000-0000-0000-000000000003');
+DELETE FROM features WHERE id in ('30000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000002','30000000-0000-0000-0000-000000000003');
+DELETE FROM environments WHERE id in ('20000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000002','20000000-0000-0000-0000-000000000003');
+DELETE FROM api_keys WHERE id in ('60000000-0000-0000-0000-000000000001','60000000-0000-0000-0000-000000000002');
+DELETE FROM projects WHERE id in ('10000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000003');
+DELETE FROM organizations WHERE id in ('00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000003');
+");
+		}
+	}
+}

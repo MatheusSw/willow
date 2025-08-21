@@ -25,7 +25,7 @@ public sealed class ApiKeyRepository : IApiKeyRepository
         log.Information("Validate API key started");
 
         var hash = ComputeSha256Base64(apiKey);
-        var cacheKey = evaluation_infrastructure.Utilities.CacheKeys.ApiKey(hash);
+        var cacheKey = Utilities.CacheKeys.ApiKey(hash);
         var cached = await _cache.GetStringAsync(cacheKey, cancellationToken);
         if (cached == "1")
         {
@@ -39,6 +39,7 @@ public sealed class ApiKeyRepository : IApiKeyRepository
         if (exists)
         {
             log.Information("API key valid, caching");
+            
             await _cache.SetStringAsync(cacheKey, "1", new DistributedCacheEntryOptions
             {
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
@@ -46,6 +47,7 @@ public sealed class ApiKeyRepository : IApiKeyRepository
         }
 
         log.Information("Validate API key completed: {Valid}", exists);
+        
         return exists;
     }
 
