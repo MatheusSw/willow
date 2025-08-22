@@ -1,5 +1,4 @@
 using Serilog;
-using Serilog.Formatting.Compact;
 using Microsoft.EntityFrameworkCore;
 using admin_infrastructure.Db;
 using admin_infrastructure.Models.Redis;
@@ -35,10 +34,11 @@ try
 
     builder.Services.AddOpenApi();
     builder.Services.AddControllers();
-    
+
     builder.Services.AddAuthentication(ApiKeyAuthenticationHandler.SchemeName)
-        .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationHandler.SchemeName, _ => { });
-    
+        .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationHandler.SchemeName,
+            _ => { });
+
     builder.Services.AddAuthorization();
 
     builder.Services.AddDbContext<FeatureToggleDbContext>(options =>
@@ -67,7 +67,9 @@ try
 
     app.UseAuthentication();
     app.UseAuthorization();
-    app.MapControllers().RequireAuthorization();
+
+    app.MapControllers()
+        .RequireAuthorization();
 
     app.Run();
 }
