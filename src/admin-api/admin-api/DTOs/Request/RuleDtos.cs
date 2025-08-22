@@ -11,8 +11,8 @@ public sealed class RuleConditionDto
 
 public sealed class CreateRuleRequest
 {
-    [JsonPropertyName("featureId")] public Guid FeatureId { get; init; }
-    [JsonPropertyName("environmentId")] public Guid? EnvironmentId { get; init; }
+    [JsonPropertyName("feature_id")] public Guid FeatureId { get; init; }
+    [JsonPropertyName("environment_id")] public Guid? EnvironmentId { get; init; }
     [JsonPropertyName("priority")] public int Priority { get; init; }
     [JsonPropertyName("match_type")] public string MatchType { get; init; } = "all";
     [JsonPropertyName("conditions")] public List<RuleConditionDto> Conditions { get; init; } = new();
@@ -20,8 +20,8 @@ public sealed class CreateRuleRequest
 
 public sealed class UpdateRuleRequest
 {
-    [JsonPropertyName("featureId")] public Guid FeatureId { get; init; }
-    [JsonPropertyName("environmentId")] public Guid? EnvironmentId { get; init; }
+    [JsonPropertyName("feature_id")] public Guid FeatureId { get; init; }
+    [JsonPropertyName("environment_id")] public Guid? EnvironmentId { get; init; }
     [JsonPropertyName("priority")] public int Priority { get; init; }
     [JsonPropertyName("match_type")] public string MatchType { get; init; } = "all";
     [JsonPropertyName("conditions")] public List<RuleConditionDto> Conditions { get; init; } = new();

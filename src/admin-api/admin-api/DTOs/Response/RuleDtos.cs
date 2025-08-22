@@ -12,8 +12,8 @@ public sealed class RuleConditionResponse
 public sealed class RuleResponse
 {
     [JsonPropertyName("id")] public Guid Id { get; init; }
-    [JsonPropertyName("featureId")] public Guid FeatureId { get; init; }
-    [JsonPropertyName("environmentId")] public Guid? EnvironmentId { get; init; }
+    [JsonPropertyName("feature_id")] public Guid FeatureId { get; init; }
+    [JsonPropertyName("environment_id")] public Guid? EnvironmentId { get; init; }
     [JsonPropertyName("priority")] public int Priority { get; init; }
     [JsonPropertyName("match_type")] public string MatchType { get; init; } = "all";
     [JsonPropertyName("conditions")] public List<RuleConditionResponse> Conditions { get; init; } = new();
