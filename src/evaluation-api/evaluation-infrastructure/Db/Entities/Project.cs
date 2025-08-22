@@ -1,5 +1,8 @@
 ﻿namespace evaluation_infrastructure.Db.Entities;
 
+/// <summary>
+/// Database entity representing a project within an organization.
+/// </summary>
 public record Project
 {
     public Guid Id { get; init; }

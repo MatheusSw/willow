@@ -1,5 +1,8 @@
 ﻿namespace evaluation_infrastructure.Db.Entities;
 
+/// <summary>
+/// Database entity representing a feature flag.
+/// </summary>
 public record Feature
 {
     public Guid Id { get; init; }

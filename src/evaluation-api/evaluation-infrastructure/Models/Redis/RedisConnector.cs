@@ -3,8 +3,16 @@ using StackExchange.Redis;
 
 namespace evaluation_infrastructure.Models.Redis;
 
+/// <summary>
+/// Provides resilient connection establishment to Redis using exponential backoff.
+/// </summary>
 internal static class RedisConnector
 {
+    /// <summary>
+    /// Connects to Redis using settings and retry logic. Throws if connection cannot be established.
+    /// </summary>
+    /// <param name="settings">Redis settings.</param>
+    /// <returns>An established <see cref="ConnectionMultiplexer"/>.</returns>
     public static async Task<ConnectionMultiplexer> ConnectWithRetryAsync(RedisSettings settings)
     {
         var attempt = 0;

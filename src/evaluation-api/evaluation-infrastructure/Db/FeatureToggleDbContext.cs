@@ -3,21 +3,56 @@ using Microsoft.EntityFrameworkCore;
 
 namespace evaluation_infrastructure.Db;
 
+/// <summary>
+/// EF Core DbContext for the feature toggle system.
+/// </summary>
 public class FeatureToggleDbContext : DbContext
 {
+    /// <summary>
+    /// Initializes the DbContext with configured options.
+    /// </summary>
+    /// <param name="options">DbContext options.</param>
     public FeatureToggleDbContext(DbContextOptions<FeatureToggleDbContext> options) : base(options)
     {
     }
 
+    /// <summary>
+    /// Organizations table.
+    /// </summary>
     public DbSet<Organization> Organizations => Set<Organization>();
+    /// <summary>
+    /// Projects table.
+    /// </summary>
     public DbSet<Project> Projects => Set<Project>();
+    /// <summary>
+    /// Environments table.
+    /// </summary>
     public DbSet<EnvironmentEntity> Environments => Set<EnvironmentEntity>();
+    /// <summary>
+    /// Features table.
+    /// </summary>
     public DbSet<Feature> Features => Set<Feature>();
+    /// <summary>
+    /// Feature states table.
+    /// </summary>
     public DbSet<FeatureState> FeatureStates => Set<FeatureState>();
+    /// <summary>
+    /// Rules table.
+    /// </summary>
     public DbSet<Rule> Rules => Set<Rule>();
+    /// <summary>
+    /// API keys table.
+    /// </summary>
     public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
+    /// <summary>
+    /// Audit logs table.
+    /// </summary>
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
+    /// <summary>
+    /// Configures entity mappings and constraints.
+    /// </summary>
+    /// <param name="modelBuilder">Model builder.</param>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasPostgresExtension("uuid-ossp");

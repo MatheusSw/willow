@@ -1,5 +1,8 @@
 ﻿namespace evaluation_infrastructure.Db.Entities;
 
+/// <summary>
+/// Database entity describing a rule for a feature, including match type and conditions JSON.
+/// </summary>
 public record Rule
 {
     public Guid Id { get; init; }

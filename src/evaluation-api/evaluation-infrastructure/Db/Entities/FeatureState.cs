@@ -1,5 +1,8 @@
 ﻿namespace evaluation_infrastructure.Db.Entities;
 
+/// <summary>
+/// Database entity storing the state of a feature in a specific environment.
+/// </summary>
 public record FeatureState
 {
     public Guid Id { get; init; }

@@ -1,5 +1,8 @@
 ﻿namespace evaluation_infrastructure.Db.Entities;
 
+/// <summary>
+/// Represents an API key allowed to access the evaluation API.
+/// </summary>
 public record ApiKey
 {
     public Guid Id { get; init; }

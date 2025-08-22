@@ -8,17 +8,31 @@ using Serilog;
 
 namespace evaluation_infrastructure.Repositories;
 
+/// <summary>
+/// Repository responsible for validating API keys using caching and database lookup.
+/// </summary>
 public sealed class ApiKeyRepository : IApiKeyRepository
 {
     private readonly FeatureToggleDbContext _dbContext;
     private readonly IDistributedCache _cache;
 
+    /// <summary>
+    /// Initializes a new instance of <see cref="ApiKeyRepository"/>.
+    /// </summary>
+    /// <param name="dbContext">Feature toggle DbContext.</param>
+    /// <param name="cache">Distributed cache used for API key caching.</param>
     public ApiKeyRepository(FeatureToggleDbContext dbContext, IDistributedCache cache)
     {
         _dbContext = dbContext;
         _cache = cache;
     }
 
+    /// <summary>
+    /// Validates an API key. Uses a short-lived cache for positive results.
+    /// </summary>
+    /// <param name="apiKey">Raw API key.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>True if valid; otherwise false.</returns>
     public async Task<bool> ValidateAsync(string apiKey, CancellationToken cancellationToken)
     {
         var log = Log.ForContext<ApiKeyRepository>();
@@ -51,6 +65,11 @@ public sealed class ApiKeyRepository : IApiKeyRepository
         return exists;
     }
 
+    /// <summary>
+    /// Computes a base64-encoded SHA-256 hash for the provided input.
+    /// </summary>
+    /// <param name="input">Input string.</param>
+    /// <returns>Base64-encoded SHA-256 hash.</returns>
     private static string ComputeSha256Base64(string input)
     {
         using var sha = SHA256.Create();

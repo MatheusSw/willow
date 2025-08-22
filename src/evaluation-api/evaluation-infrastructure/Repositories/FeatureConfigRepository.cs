@@ -9,18 +9,34 @@ using Serilog;
 
 namespace evaluation_infrastructure.Repositories;
 
+/// <summary>
+/// Repository that loads feature configurations from cache or database and maps them to application models.
+/// </summary>
 public sealed class FeatureConfigRepository : IFeatureConfigRepository
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly FeatureToggleDbContext _dbContext;
     private readonly IDistributedCache _cache;
 
+    /// <summary>
+    /// Initializes a new instance of <see cref="FeatureConfigRepository"/>.
+    /// </summary>
+    /// <param name="dbContext">Feature toggle DbContext.</param>
+    /// <param name="cache">Distributed cache for storing feature configs.</param>
     public FeatureConfigRepository(FeatureToggleDbContext dbContext, IDistributedCache cache)
     {
         _dbContext = dbContext;
         _cache = cache;
     }
 
+    /// <summary>
+    /// Attempts to resolve a feature configuration for a given project/environment/feature.
+    /// </summary>
+    /// <param name="project">Project name.</param>
+    /// <param name="environment">Environment key.</param>
+    /// <param name="feature">Feature name.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tuple indicating if found and the configuration if available.</returns>
     public async Task<(bool Found, FeatureConfig? Config)> TryGetConfigAsync(string project, string environment, string feature, CancellationToken cancellationToken)
     {
         var log = Log.ForContext<FeatureConfigRepository>()
@@ -88,6 +104,13 @@ public sealed class FeatureConfigRepository : IFeatureConfigRepository
         return (true, configToCache);
     }
 
+    /// <summary>
+    /// Loads feature configuration from the database when not present in cache.
+    /// </summary>
+    /// <param name="featureEntity">Feature entity.</param>
+    /// <param name="environmentEntity">Environment entity.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Feature configuration or null when no state exists.</returns>
     private async Task<FeatureConfig?> LoadFromDatabaseAsync(Feature featureEntity, EnvironmentEntity environmentEntity, CancellationToken cancellationToken)
     {
         var featureState = await _dbContext.FeatureStates.AsNoTracking()

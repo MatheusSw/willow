@@ -1,5 +1,8 @@
 namespace evaluation_infrastructure.Db.Entities;
 
+/// <summary>
+/// Database entity representing a deployment environment for a project.
+/// </summary>
 public record EnvironmentEntity
 {
     public Guid Id { get; init; }
