@@ -1,7 +1,6 @@
 using admin_api.DTOs.Request;
 using admin_api.DTOs.Response;
 using admin_application.Commands;
-using admin_application.Handlers.Interfaces.ApiKeys;
 using admin_application.Handlers.Interfaces.Features;
 using admin_application.Queries;
 using admin_domain.Entities;
@@ -14,29 +13,24 @@ namespace admin_api.Controllers;
 [Route("v1/features")]
 public sealed class FeaturesController : ControllerBase
 {
-    private const string ApiKeyHeader = "x-api-key";
-
     private readonly ICreateFeatureCommandHandler _createHandler;
     private readonly IUpdateFeatureCommandHandler _updateHandler;
     private readonly IDeleteFeatureCommandHandler _deleteHandler;
     private readonly IGetFeatureByIdQueryHandler _getByIdHandler;
     private readonly IListFeaturesQueryHandler _listHandler;
-    private readonly IValidateApiKeyQueryHandler _apiKeyHandler;
 
     public FeaturesController(
         ICreateFeatureCommandHandler createHandler,
         IUpdateFeatureCommandHandler updateHandler,
         IDeleteFeatureCommandHandler deleteHandler,
         IGetFeatureByIdQueryHandler getByIdHandler,
-        IListFeaturesQueryHandler listHandler,
-        IValidateApiKeyQueryHandler apiKeyHandler)
+        IListFeaturesQueryHandler listHandler)
     {
         _createHandler = createHandler;
         _updateHandler = updateHandler;
         _deleteHandler = deleteHandler;
         _getByIdHandler = getByIdHandler;
         _listHandler = listHandler;
-        _apiKeyHandler = apiKeyHandler;
     }
 
     [HttpGet]
@@ -44,11 +38,6 @@ public sealed class FeaturesController : ControllerBase
     {
         var log = Log.ForContext<FeaturesController>()
             .ForContext("projectId", projectId);
-
-        if (!await AuthorizeAsync(cancellationToken))
-        {
-            return Unauthorized();
-        }
 
         log.Information("List features started");
         var result = await _listHandler.HandleAsync(new ListFeaturesQuery { ProjectId = projectId }, cancellationToken);
@@ -75,11 +64,6 @@ public sealed class FeaturesController : ControllerBase
         var log = Log.ForContext<FeaturesController>()
             .ForContext("id", id);
 
-        if (!await AuthorizeAsync(cancellationToken))
-        {
-            return Unauthorized();
-        }
-
         log.Information("Get feature started");
 
         var result = await _getByIdHandler.HandleAsync(new GetFeatureByIdQuery { Id = id }, cancellationToken);
@@ -104,11 +88,6 @@ public sealed class FeaturesController : ControllerBase
             .ForContext("projectId", request.ProjectId)
             .ForContext("name", request.Name);
 
-        if (!await AuthorizeAsync(cancellationToken))
-        {
-            return Unauthorized();
-        }
-
         log.Information("Create feature started");
 
         var result = await _createHandler.HandleAsync(new CreateFeatureCommand
@@ -124,7 +103,6 @@ public sealed class FeaturesController : ControllerBase
         }
 
         var created = Map(result.Value);
-
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 
@@ -135,11 +113,6 @@ public sealed class FeaturesController : ControllerBase
             .ForContext("id", id)
             .ForContext("projectId", request.ProjectId)
             .ForContext("name", request.Name);
-
-        if (!await AuthorizeAsync(cancellationToken))
-        {
-            return Unauthorized();
-        }
 
         log.Information("Update feature started");
 
@@ -153,11 +126,6 @@ public sealed class FeaturesController : ControllerBase
 
         if (result.IsFailed)
         {
-            if (result.Errors.Any(e => e.Message == "NotFound"))
-            {
-                return NotFound();
-            }
-
             return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
         }
 
@@ -169,11 +137,6 @@ public sealed class FeaturesController : ControllerBase
     {
         var log = Log.ForContext<FeaturesController>()
             .ForContext("id", id);
-
-        if (!await AuthorizeAsync(cancellationToken))
-        {
-            return Unauthorized();
-        }
 
         log.Information("Delete feature started");
 
@@ -199,23 +162,6 @@ public sealed class FeaturesController : ControllerBase
         Name = model.Name,
         Description = model.Description
     };
-
-    private async Task<bool> AuthorizeAsync(CancellationToken cancellationToken)
-    {
-        if (!Request.Headers.TryGetValue(ApiKeyHeader, out var apiKey) || string.IsNullOrWhiteSpace(apiKey))
-        {
-            Log.ForContext<FeaturesController>().Warning("Missing API key header");
-            return false;
-        }
-
-        var valid = await _apiKeyHandler.HandleAsync(new ValidateApiKeyQuery { ApiKey = apiKey! }, cancellationToken);
-        if (!valid)
-        {
-            Log.ForContext<FeaturesController>().Warning("API key invalid");
-        }
-
-        return valid;
-    }
 }
 
 

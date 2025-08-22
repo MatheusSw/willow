@@ -1,7 +1,6 @@
 using admin_api.DTOs.Request;
 using admin_api.DTOs.Response;
 using admin_application.Commands;
-using admin_application.Handlers.Interfaces.ApiKeys;
 using admin_application.Handlers.Interfaces.Projects;
 using admin_application.Interfaces;
 using admin_application.Queries;
@@ -17,29 +16,24 @@ namespace admin_api.Controllers;
 [Route("v1/projects")]
 public sealed class ProjectsController : ControllerBase
 {
-    private const string ApiKeyHeader = "x-api-key";
-
     private readonly ICreateProjectCommandHandler _createHandler;
     private readonly IUpdateProjectCommandHandler _updateHandler;
     private readonly IDeleteProjectCommandHandler _deleteHandler;
     private readonly IGetProjectByIdQueryHandler _getByIdHandler;
     private readonly IListProjectsQueryHandler _listHandler;
-    private readonly IValidateApiKeyQueryHandler _apiKeyHandler;
 
     public ProjectsController(
         ICreateProjectCommandHandler createHandler,
         IUpdateProjectCommandHandler updateHandler,
         IDeleteProjectCommandHandler deleteHandler,
         IGetProjectByIdQueryHandler getByIdHandler,
-        IListProjectsQueryHandler listHandler,
-        IValidateApiKeyQueryHandler apiKeyHandler)
+        IListProjectsQueryHandler listHandler)
     {
         _createHandler = createHandler;
         _updateHandler = updateHandler;
         _deleteHandler = deleteHandler;
         _getByIdHandler = getByIdHandler;
         _listHandler = listHandler;
-        _apiKeyHandler = apiKeyHandler;
     }
 
     [HttpGet]
@@ -47,11 +41,6 @@ public sealed class ProjectsController : ControllerBase
     {
         var log = Log.ForContext<ProjectsController>()
             .ForContext("orgId", orgId);
-
-        if (!await AuthorizeAsync(cancellationToken))
-        {
-            return Unauthorized();
-        }
 
         log.Information("List projects started");
         var result = await _listHandler.HandleAsync(new ListProjectsQuery { OrgId = orgId }, cancellationToken);
@@ -69,7 +58,6 @@ public sealed class ProjectsController : ControllerBase
         }
 
         log.Information("List projects completed: {Count}", response.Count);
-
         return Ok(response);
     }
 
@@ -78,11 +66,6 @@ public sealed class ProjectsController : ControllerBase
     {
         var log = Log.ForContext<ProjectsController>()
             .ForContext("id", id);
-
-        if (!await AuthorizeAsync(cancellationToken))
-        {
-            return Unauthorized();
-        }
 
         log.Information("Get project started");
 
@@ -107,11 +90,6 @@ public sealed class ProjectsController : ControllerBase
             .ForContext("orgId", request.OrgId)
             .ForContext("name", request.Name);
 
-        if (!await AuthorizeAsync(cancellationToken))
-        {
-            return Unauthorized();
-        }
-
         log.Information("Create project started");
 
         var result = await _createHandler.HandleAsync(new CreateProjectCommand
@@ -126,7 +104,6 @@ public sealed class ProjectsController : ControllerBase
         }
 
         var created = Map(result.Value);
-
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 
@@ -137,11 +114,6 @@ public sealed class ProjectsController : ControllerBase
             .ForContext("id", id)
             .ForContext("orgId", request.OrgId)
             .ForContext("name", request.Name);
-
-        if (!await AuthorizeAsync(cancellationToken))
-        {
-            return Unauthorized();
-        }
 
         log.Information("Update project started");
 
@@ -170,11 +142,6 @@ public sealed class ProjectsController : ControllerBase
         var log = Log.ForContext<ProjectsController>()
             .ForContext("id", id);
 
-        if (!await AuthorizeAsync(cancellationToken))
-        {
-            return Unauthorized();
-        }
-
         log.Information("Delete project started");
 
         var result = await _deleteHandler.HandleAsync(new DeleteProjectCommand { Id = id }, cancellationToken);
@@ -197,24 +164,6 @@ public sealed class ProjectsController : ControllerBase
         OrgId = model.OrgId,
         Name = model.Name
     };
-
-    private async Task<bool> AuthorizeAsync(CancellationToken cancellationToken)
-    {
-        if (!Request.Headers.TryGetValue(ApiKeyHeader, out var apiKey) || string.IsNullOrWhiteSpace(apiKey))
-        {
-            Log.ForContext<ProjectsController>().Warning("Missing API key header");
-
-            return false;
-        }
-
-        var valid = await _apiKeyHandler.HandleAsync(new ValidateApiKeyQuery { ApiKey = apiKey! }, cancellationToken);
-        if (!valid)
-        {
-            Log.ForContext<ProjectsController>().Warning("API key invalid");
-        }
-
-        return valid;
-    }
 }
 
 

@@ -16,7 +16,6 @@ public class FeatureToggleDbContext : DbContext
     public DbSet<FeatureState> FeatureStates => Set<FeatureState>();
     public DbSet<Rule> Rules => Set<Rule>();
     public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
-    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -137,21 +136,6 @@ public class FeatureToggleDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(x => x.ProjectId)
                 .OnDelete(DeleteBehavior.Cascade);
-        });
-
-        modelBuilder.Entity<AuditLog>(e =>
-        {
-            e.ToTable("audit_logs");
-            e.HasKey(x => x.Id);
-            e.Property(x => x.Id).HasColumnName("id");
-            e.Property(x => x.Actor).HasColumnName("actor");
-            e.Property(x => x.Action).HasColumnName("action");
-            e.Property(x => x.EntityType).HasColumnName("entity_type");
-            e.Property(x => x.EntityId).HasColumnName("entity_id");
-            e.Property(x => x.Before).HasColumnName("before").HasColumnType("jsonb");
-            e.Property(x => x.After).HasColumnName("after").HasColumnType("jsonb");
-            e.Property(x => x.At).HasColumnName("at").HasDefaultValueSql("now()");
-            e.HasIndex(x => new { x.EntityType, x.EntityId });
         });
     }
 }

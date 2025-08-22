@@ -5,6 +5,8 @@ using admin_infrastructure.Db;
 using admin_infrastructure.Models.Redis;
 using admin_application;
 using admin_infrastructure;
+using admin_api.Security;
+using Microsoft.AspNetCore.Authentication;
 
 try
 {
@@ -33,6 +35,11 @@ try
 
     builder.Services.AddOpenApi();
     builder.Services.AddControllers();
+    
+    builder.Services.AddAuthentication(ApiKeyAuthenticationHandler.SchemeName)
+        .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationHandler.SchemeName, _ => { });
+    
+    builder.Services.AddAuthorization();
 
     builder.Services.AddDbContext<FeatureToggleDbContext>(options =>
     {
@@ -58,7 +65,9 @@ try
         app.MapOpenApi();
     }
 
-    app.MapControllers();
+    app.UseAuthentication();
+    app.UseAuthorization();
+    app.MapControllers().RequireAuthorization();
 
     app.Run();
 }

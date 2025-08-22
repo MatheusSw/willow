@@ -10,7 +10,7 @@ namespace admin_application.Handlers.Implementations.Features;
 public sealed class CreateFeatureCommandHandler : ICreateFeatureCommandHandler
 {
     private readonly IFeatureRepository _repository;
-    
+
     public CreateFeatureCommandHandler(IFeatureRepository repository) { _repository = repository; }
 
     public async Task<Result<Feature>> HandleAsync(CreateFeatureCommand command, CancellationToken cancellationToken)

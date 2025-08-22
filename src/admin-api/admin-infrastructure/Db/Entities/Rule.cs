@@ -12,5 +12,3 @@ public record Rule
     public Feature? Feature { get; init; }
     public EnvironmentEntity? Environment { get; init; }
 }
-
-
