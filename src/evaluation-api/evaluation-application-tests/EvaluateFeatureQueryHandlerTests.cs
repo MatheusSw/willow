@@ -33,4 +33,31 @@ public class EvaluateFeatureQueryHandlerTests
         Assert.True(result.Enabled);
         Assert.NotNull(result.Reason);
     }
+
+    [Fact]
+    public async Task HandleAsync_ConfigNotFound_ReturnsNotFoundReason()
+    {
+        // Arrange
+        var fixture = new Fixture().Customize(new AutoMoqCustomization { ConfigureMembers = true });
+        var repo = new Mock<IFeatureConfigRepository>();
+        repo.Setup(r => r.TryGetConfigAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((false, (FeatureConfig?)null));
+        var handler = new EvaluateFeatureQueryHandler(repo.Object);
+
+        var query = new EvaluateFeatureQuery
+        {
+            Project = fixture.Create<string>(),
+            Environment = fixture.Create<string>(),
+            Feature = fixture.Create<string>(),
+            Attributes = new Dictionary<string, string>()
+        };
+
+        // Act
+        var result = await handler.HandleAsync(query, CancellationToken.None);
+
+        // Assert
+        Assert.False(result.Enabled);
+        Assert.Equal("not_found", result.Reason);
+        Assert.Null(result.Variant);
+    }
 }

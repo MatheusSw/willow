@@ -58,4 +58,47 @@ public class ApiKeyRepositoryTests
 		Assert.True(first);
 		Assert.True(second);
 	}
+
+	[Fact]
+	public async Task ValidateAsync_KeyNotFound_ReturnsFalse()
+	{
+		// Arrange
+		await using var db = InfrastructureFixtures.CreateInMemoryDb();
+		var cache = InfrastructureFixtures.CreateMemoryDistributedCache();
+		var repo = new ApiKeyRepository(db, cache);
+
+		// Act
+		var result = await repo.ValidateAsync("missing", default);
+
+		// Assert
+		Assert.False(result);
+	}
+
+	[Fact]
+	public async Task ValidateAsync_InactiveKey_ReturnsFalse()
+	{
+		// Arrange
+		await using var db = InfrastructureFixtures.CreateInMemoryDb();
+		var cache = InfrastructureFixtures.CreateMemoryDistributedCache();
+		var repo = new ApiKeyRepository(db, cache);
+
+		var keyHash = Convert.ToBase64String(System.Security.Cryptography.SHA256.HashData("inactive"u8.ToArray()));
+		db.ApiKeys.Add(new ApiKey
+		{
+			Id = Guid.NewGuid(),
+			OrgId = Guid.NewGuid(),
+			ProjectId = null,
+			Role = "reader",
+			Scopes = Array.Empty<string>(),
+			HashedKey = keyHash,
+			Active = false
+		});
+		await db.SaveChangesAsync();
+
+		// Act
+		var result = await repo.ValidateAsync("inactive", default);
+
+		// Assert
+		Assert.False(result);
+	}
 }
