@@ -8,32 +8,32 @@ namespace evaluation_api.DTOs.Request;
 /// </summary>
 public sealed class EvaluateRequest
 {
-    [JsonRequired]
-    [JsonPropertyName("project")]
     /// <summary>
     /// The project identifier.
     /// </summary>
+    [JsonRequired]
+    [JsonPropertyName("project")]
     public string Project { get; init; } = string.Empty;
 
-    [JsonRequired]
-    [JsonPropertyName("environment")]
     /// <summary>
     /// The environment identifier (e.g., dev, staging, prod).
     /// </summary>
+    [JsonRequired]
+    [JsonPropertyName("environment")]
     public string Environment { get; init; } = string.Empty;
 
-    [JsonRequired]
-    [JsonPropertyName("feature")]
     /// <summary>
     /// The feature flag name to evaluate.
     /// </summary>
+    [JsonRequired]
+    [JsonPropertyName("feature")]
     public string Feature { get; init; } = string.Empty;
 
-    [JsonRequired]
-    [JsonPropertyName("attributes")]
     /// <summary>
     /// Arbitrary key/value attributes describing the caller (e.g., orgId, userId).
     /// </summary>
+    [JsonRequired]
+    [JsonPropertyName("attributes")]
     public Dictionary<string, string> Attributes { get; init; } = new();
 }
 

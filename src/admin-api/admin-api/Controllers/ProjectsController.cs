@@ -1,0 +1,220 @@
+using admin_api.DTOs.Request;
+using admin_api.DTOs.Response;
+using admin_application.Commands;
+using admin_application.Handlers.Interfaces.ApiKeys;
+using admin_application.Handlers.Interfaces.Projects;
+using admin_application.Interfaces;
+using admin_application.Queries;
+using admin_domain;
+using admin_domain.Entities;
+using FluentResults;
+using Microsoft.AspNetCore.Mvc;
+using Serilog;
+
+namespace admin_api.Controllers;
+
+[ApiController]
+[Route("v1/projects")]
+public sealed class ProjectsController : ControllerBase
+{
+    private const string ApiKeyHeader = "x-api-key";
+
+    private readonly ICreateProjectCommandHandler _createHandler;
+    private readonly IUpdateProjectCommandHandler _updateHandler;
+    private readonly IDeleteProjectCommandHandler _deleteHandler;
+    private readonly IGetProjectByIdQueryHandler _getByIdHandler;
+    private readonly IListProjectsQueryHandler _listHandler;
+    private readonly IValidateApiKeyQueryHandler _apiKeyHandler;
+
+    public ProjectsController(
+        ICreateProjectCommandHandler createHandler,
+        IUpdateProjectCommandHandler updateHandler,
+        IDeleteProjectCommandHandler deleteHandler,
+        IGetProjectByIdQueryHandler getByIdHandler,
+        IListProjectsQueryHandler listHandler,
+        IValidateApiKeyQueryHandler apiKeyHandler)
+    {
+        _createHandler = createHandler;
+        _updateHandler = updateHandler;
+        _deleteHandler = deleteHandler;
+        _getByIdHandler = getByIdHandler;
+        _listHandler = listHandler;
+        _apiKeyHandler = apiKeyHandler;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<List<ProjectResponse>>> List([FromQuery] Guid? orgId, CancellationToken cancellationToken)
+    {
+        var log = Log.ForContext<ProjectsController>()
+            .ForContext("orgId", orgId);
+
+        if (!await AuthorizeAsync(cancellationToken))
+        {
+            return Unauthorized();
+        }
+
+        log.Information("List projects started");
+        var result = await _listHandler.HandleAsync(new ListProjectsQuery { OrgId = orgId }, cancellationToken);
+
+        if (result.IsFailed)
+        {
+            return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
+        }
+
+        var response = result.Value.Select(Map).ToList();
+        if (response.Count == 0)
+        {
+            log.Information("List projects completed: no content");
+            return NoContent();
+        }
+
+        log.Information("List projects completed: {Count}", response.Count);
+
+        return Ok(response);
+    }
+
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult<ProjectResponse>> GetById([FromRoute] Guid id, CancellationToken cancellationToken)
+    {
+        var log = Log.ForContext<ProjectsController>()
+            .ForContext("id", id);
+
+        if (!await AuthorizeAsync(cancellationToken))
+        {
+            return Unauthorized();
+        }
+
+        log.Information("Get project started");
+
+        var result = await _getByIdHandler.HandleAsync(new GetProjectByIdQuery { Id = id }, cancellationToken);
+
+        if (result.IsFailed)
+        {
+            if (result.Errors.Any(e => e.Message == "NotFound"))
+            {
+                return NotFound();
+            }
+            return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
+        }
+
+        return Ok(Map(result.Value));
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<ProjectResponse>> Create([FromBody] CreateProjectRequest request, CancellationToken cancellationToken)
+    {
+        var log = Log.ForContext<ProjectsController>()
+            .ForContext("orgId", request.OrgId)
+            .ForContext("name", request.Name);
+
+        if (!await AuthorizeAsync(cancellationToken))
+        {
+            return Unauthorized();
+        }
+
+        log.Information("Create project started");
+
+        var result = await _createHandler.HandleAsync(new CreateProjectCommand
+        {
+            OrgId = request.OrgId,
+            Name = request.Name
+        }, cancellationToken);
+
+        if (result.IsFailed)
+        {
+            return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
+        }
+
+        var created = Map(result.Value);
+
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+    }
+
+    [HttpPut("{id:guid}")]
+    public async Task<ActionResult<ProjectResponse>> Update([FromRoute] Guid id, [FromBody] UpdateProjectRequest request, CancellationToken cancellationToken)
+    {
+        var log = Log.ForContext<ProjectsController>()
+            .ForContext("id", id)
+            .ForContext("orgId", request.OrgId)
+            .ForContext("name", request.Name);
+
+        if (!await AuthorizeAsync(cancellationToken))
+        {
+            return Unauthorized();
+        }
+
+        log.Information("Update project started");
+
+        var result = await _updateHandler.HandleAsync(new UpdateProjectCommand
+        {
+            Id = id,
+            OrgId = request.OrgId,
+            Name = request.Name
+        }, cancellationToken);
+
+        if (result.IsFailed)
+        {
+            if (result.Errors.Any(e => e.Message == "NotFound"))
+            {
+                return NotFound();
+            }
+            return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
+        }
+
+        return Ok(Map(result.Value));
+    }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<ActionResult> Delete([FromRoute] Guid id, CancellationToken cancellationToken)
+    {
+        var log = Log.ForContext<ProjectsController>()
+            .ForContext("id", id);
+
+        if (!await AuthorizeAsync(cancellationToken))
+        {
+            return Unauthorized();
+        }
+
+        log.Information("Delete project started");
+
+        var result = await _deleteHandler.HandleAsync(new DeleteProjectCommand { Id = id }, cancellationToken);
+
+        if (result.IsFailed)
+        {
+            if (result.Errors.Any(e => e.Message == "NotFound"))
+            {
+                return NotFound();
+            }
+            return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
+        }
+
+        return NoContent();
+    }
+
+    private static ProjectResponse Map(Project model) => new()
+    {
+        Id = model.Id,
+        OrgId = model.OrgId,
+        Name = model.Name
+    };
+
+    private async Task<bool> AuthorizeAsync(CancellationToken cancellationToken)
+    {
+        if (!Request.Headers.TryGetValue(ApiKeyHeader, out var apiKey) || string.IsNullOrWhiteSpace(apiKey))
+        {
+            Log.ForContext<ProjectsController>().Warning("Missing API key header");
+
+            return false;
+        }
+
+        var valid = await _apiKeyHandler.HandleAsync(new ValidateApiKeyQuery { ApiKey = apiKey! }, cancellationToken);
+        if (!valid)
+        {
+            Log.ForContext<ProjectsController>().Warning("API key invalid");
+        }
+
+        return valid;
+    }
+}
+
+
