@@ -1,0 +1,39 @@
+name: test-dotnet
+
+on:
+  push:
+    branches: [ "develop" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+          cache: true
+
+      - name: Restore
+        run: |
+          dotnet restore src/evaluation-api/evaluation.sln
+          dotnet restore src/admin-api/admin.sln
+
+      - name: Run tests (evaluation-api)
+        run: dotnet test src/evaluation-api/evaluation.sln -c Release --no-restore --logger "trx;LogFileName=evaluation-api.trx" --results-directory artifacts/test-results
+
+      - name: Run tests (admin-api)
+        run: dotnet test src/admin-api/admin.sln -c Release --no-restore --logger "trx;LogFileName=admin-api.trx" --results-directory artifacts/test-results
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+            name: test-results
+            path: artifacts/test-results
+
+

@@ -1,0 +1,33 @@
+name: build-dotnet
+
+on:
+  push:
+    branches: [ "develop" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+          cache: true
+
+      - name: Restore (evaluation-api)
+        run: dotnet restore src/evaluation-api/evaluation.sln
+
+      - name: Restore (admin-api)
+        run: dotnet restore src/admin-api/admin.sln
+
+      - name: Build (evaluation-api)
+        run: dotnet build src/evaluation-api/evaluation.sln -c Release --no-restore
+
+      - name: Build (admin-api)
+        run: dotnet build src/admin-api/admin.sln -c Release --no-restore
+
+
