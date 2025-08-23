@@ -1,4 +1,4 @@
-<h1>Willow</h1>
+# Willow
 
 <p align="center">
 <img src="https://github.com/MatheusSw/willow/actions/workflows/dotnet-test.yml/badge.svg" alt="Dotnet Test">
@@ -7,8 +7,6 @@
 </p>
 
 A self-hosted, open source **feature flag service** built with **.NET 9**, designed for teams who want full control over their release toggles without relying on SaaS vendors. Deployable on **AWS** via Terraform and Kubernetes Helm charts.
-
----
 
 ## About Willow
 
@@ -25,3 +23,24 @@ This project is designed to be:
 - **Modular**: separate Admin API, Evaluation API, and Notifier services.
 - **Event-oriented**: consumers can subscribe to changes over WebSockets.
 - **Enterprise-friendly**: self-hosted, API-first, Apache-licensed.
+
+---
+
+## Requirements
+
+- [.NET 8 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)
+- [Docker](https://www.docker.com/)
+- [Terraform](https://developer.hashicorp.com/terraform)
+- [Helm](https://helm.sh/)
+- AWS account (for production deployment)
+
+---
+
+## Installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/your-org/feature-toggle-service.git
+cd feature-toggle-service
+```
