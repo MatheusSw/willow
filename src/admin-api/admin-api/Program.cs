@@ -6,6 +6,7 @@ using admin_infrastructure.Models.Redis;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using Serilog.Formatting.Compact;
 
 namespace admin_api;
 
