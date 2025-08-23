@@ -1,11 +1,16 @@
 using admin_api.Controllers;
 using admin_api.DTOs.Request;
 using admin_api.DTOs.Response;
+
 using admin_application.Handlers.Interfaces.Projects;
 using admin_application.Queries;
+
 using admin_domain.Entities;
+
 using FluentResults;
+
 using Microsoft.AspNetCore.Mvc;
+
 using Moq;
 
 namespace admin_api_tests.Controllers;
@@ -89,5 +94,3 @@ public class ProjectsControllerTests
 		Assert.Equal(500, problem.StatusCode);
 	}
 }
-
-

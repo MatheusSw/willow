@@ -1,178 +1,162 @@
 using admin_api.DTOs.Request;
 using admin_api.DTOs.Response;
+
 using admin_application.Commands;
 using admin_application.Handlers.Interfaces.FeatureStates;
 using admin_application.Queries;
+
 using admin_domain.Entities;
+
 using Microsoft.AspNetCore.Mvc;
+
 using Serilog;
 
 namespace admin_api.Controllers;
 
 [ApiController]
 [Route("v1/feature-states")]
-public sealed class FeatureStatesController : ControllerBase
+public sealed class FeatureStatesController(
+	ICreateFeatureStateCommandHandler createHandler,
+	IUpdateFeatureStateCommandHandler updateHandler,
+	IDeleteFeatureStateCommandHandler deleteHandler,
+	IGetFeatureStateByIdQueryHandler getByIdHandler,
+	IListFeatureStatesQueryHandler listHandler) : ControllerBase
 {
-    private readonly ICreateFeatureStateCommandHandler _createHandler;
-    private readonly IUpdateFeatureStateCommandHandler _updateHandler;
-    private readonly IDeleteFeatureStateCommandHandler _deleteHandler;
-    private readonly IGetFeatureStateByIdQueryHandler _getByIdHandler;
-    private readonly IListFeatureStatesQueryHandler _listHandler;
+	private readonly ICreateFeatureStateCommandHandler _createHandler = createHandler;
+	private readonly IUpdateFeatureStateCommandHandler _updateHandler = updateHandler;
+	private readonly IDeleteFeatureStateCommandHandler _deleteHandler = deleteHandler;
+	private readonly IGetFeatureStateByIdQueryHandler _getByIdHandler = getByIdHandler;
+	private readonly IListFeatureStatesQueryHandler _listHandler = listHandler;
 
-    public FeatureStatesController(
-        ICreateFeatureStateCommandHandler createHandler,
-        IUpdateFeatureStateCommandHandler updateHandler,
-        IDeleteFeatureStateCommandHandler deleteHandler,
-        IGetFeatureStateByIdQueryHandler getByIdHandler,
-        IListFeatureStatesQueryHandler listHandler)
-    {
-        _createHandler = createHandler;
-        _updateHandler = updateHandler;
-        _deleteHandler = deleteHandler;
-        _getByIdHandler = getByIdHandler;
-        _listHandler = listHandler;
-    }
+	[HttpGet]
+	public async Task<ActionResult<List<FeatureStateResponse>>> List([FromQuery] Guid? featureId, [FromQuery] Guid? environmentId, CancellationToken cancellationToken)
+	{
+		var log = Log.ForContext<FeatureStatesController>()
+			.ForContext("featureId", featureId)
+			.ForContext("environmentId", environmentId);
 
-    [HttpGet]
-    public async Task<ActionResult<List<FeatureStateResponse>>> List([FromQuery] Guid? featureId, [FromQuery] Guid? environmentId, CancellationToken cancellationToken)
-    {
-        var log = Log.ForContext<FeatureStatesController>()
-            .ForContext("featureId", featureId)
-            .ForContext("environmentId", environmentId);
+		log.Information("List feature states started");
+		var result = await _listHandler.HandleAsync(new ListFeatureStatesQuery { FeatureId = featureId, EnvironmentId = environmentId }, cancellationToken);
 
-        log.Information("List feature states started");
-        var result = await _listHandler.HandleAsync(new ListFeatureStatesQuery { FeatureId = featureId, EnvironmentId = environmentId }, cancellationToken);
+		if (result.IsFailed)
+		{
+			return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
+		}
 
-        if (result.IsFailed)
-        {
-            return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
-        }
+		var response = result.Value.Select(Map).ToList();
+		if (response.Count == 0)
+		{
+			log.Information("List feature states completed: no content");
+			return NoContent();
+		}
 
-        var response = result.Value.Select(Map).ToList();
-        if (response.Count == 0)
-        {
-            log.Information("List feature states completed: no content");
-            return NoContent();
-        }
+		log.Information("List feature states completed: {Count}", response.Count);
+		return Ok(response);
+	}
 
-        log.Information("List feature states completed: {Count}", response.Count);
-        return Ok(response);
-    }
+	[HttpGet("{id:guid}")]
+	public async Task<ActionResult<FeatureStateResponse>> GetById([FromRoute] Guid id, CancellationToken cancellationToken)
+	{
+		var log = Log.ForContext<FeatureStatesController>()
+			.ForContext("id", id);
 
-    [HttpGet("{id:guid}")]
-    public async Task<ActionResult<FeatureStateResponse>> GetById([FromRoute] Guid id, CancellationToken cancellationToken)
-    {
-        var log = Log.ForContext<FeatureStatesController>()
-            .ForContext("id", id);
+		log.Information("Get feature state started");
 
-        log.Information("Get feature state started");
+		var result = await _getByIdHandler.HandleAsync(new GetFeatureStateByIdQuery { Id = id }, cancellationToken);
 
-        var result = await _getByIdHandler.HandleAsync(new GetFeatureStateByIdQuery { Id = id }, cancellationToken);
+		if (result.IsFailed)
+		{
+			return result.Errors.Any(e => e.Message == "NotFound")
+				? (ActionResult<FeatureStateResponse>)NotFound()
+				: (ActionResult<FeatureStateResponse>)Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
+		}
 
-        if (result.IsFailed)
-        {
-            if (result.Errors.Any(e => e.Message == "NotFound"))
-            {
-                return NotFound();
-            }
+		return Ok(Map(result.Value));
+	}
 
-            return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
-        }
+	[HttpPost]
+	public async Task<ActionResult<FeatureStateResponse>> Create([FromBody] CreateFeatureStateRequest request, CancellationToken cancellationToken)
+	{
+		var log = Log.ForContext<FeatureStatesController>()
+			.ForContext("featureId", request.FeatureId)
+			.ForContext("environmentId", request.EnvironmentId)
+			.ForContext("enabled", request.Enabled);
 
-        return Ok(Map(result.Value));
-    }
+		log.Information("Create feature state started");
 
-    [HttpPost]
-    public async Task<ActionResult<FeatureStateResponse>> Create([FromBody] CreateFeatureStateRequest request, CancellationToken cancellationToken)
-    {
-        var log = Log.ForContext<FeatureStatesController>()
-            .ForContext("featureId", request.FeatureId)
-            .ForContext("environmentId", request.EnvironmentId)
-            .ForContext("enabled", request.Enabled);
+		var result = await _createHandler.HandleAsync(new CreateFeatureStateCommand
+		{
+			FeatureId = request.FeatureId,
+			EnvironmentId = request.EnvironmentId,
+			Enabled = request.Enabled,
+			Reason = request.Reason
+		}, cancellationToken);
 
-        log.Information("Create feature state started");
+		if (result.IsFailed)
+		{
+			return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
+		}
 
-        var result = await _createHandler.HandleAsync(new CreateFeatureStateCommand
-        {
-            FeatureId = request.FeatureId,
-            EnvironmentId = request.EnvironmentId,
-            Enabled = request.Enabled,
-            Reason = request.Reason
-        }, cancellationToken);
+		var created = Map(result.Value);
+		return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+	}
 
-        if (result.IsFailed)
-        {
-            return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
-        }
+	[HttpPut("{id:guid}")]
+	public async Task<ActionResult<FeatureStateResponse>> Update([FromRoute] Guid id, [FromBody] UpdateFeatureStateRequest request, CancellationToken cancellationToken)
+	{
+		var log = Log.ForContext<FeatureStatesController>()
+			.ForContext("id", id)
+			.ForContext("featureId", request.FeatureId)
+			.ForContext("environmentId", request.EnvironmentId)
+			.ForContext("enabled", request.Enabled);
 
-        var created = Map(result.Value);
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
-    }
+		log.Information("Update feature state started");
 
-    [HttpPut("{id:guid}")]
-    public async Task<ActionResult<FeatureStateResponse>> Update([FromRoute] Guid id, [FromBody] UpdateFeatureStateRequest request, CancellationToken cancellationToken)
-    {
-        var log = Log.ForContext<FeatureStatesController>()
-            .ForContext("id", id)
-            .ForContext("featureId", request.FeatureId)
-            .ForContext("environmentId", request.EnvironmentId)
-            .ForContext("enabled", request.Enabled);
+		var result = await _updateHandler.HandleAsync(new UpdateFeatureStateCommand
+		{
+			Id = id,
+			FeatureId = request.FeatureId,
+			EnvironmentId = request.EnvironmentId,
+			Enabled = request.Enabled,
+			Reason = request.Reason
+		}, cancellationToken);
 
-        log.Information("Update feature state started");
+		if (result.IsFailed)
+		{
+			return result.Errors.Any(e => e.Message == "NotFound")
+				? (ActionResult<FeatureStateResponse>)NotFound()
+				: (ActionResult<FeatureStateResponse>)Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
+		}
 
-        var result = await _updateHandler.HandleAsync(new UpdateFeatureStateCommand
-        {
-            Id = id,
-            FeatureId = request.FeatureId,
-            EnvironmentId = request.EnvironmentId,
-            Enabled = request.Enabled,
-            Reason = request.Reason
-        }, cancellationToken);
+		return Ok(Map(result.Value));
+	}
 
-        if (result.IsFailed)
-        {
-            if (result.Errors.Any(e => e.Message == "NotFound"))
-            {
-                return NotFound();
-            }
+	[HttpDelete("{id:guid}")]
+	public async Task<ActionResult> Delete([FromRoute] Guid id, CancellationToken cancellationToken)
+	{
+		var log = Log.ForContext<FeatureStatesController>()
+			.ForContext("id", id);
 
-            return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
-        }
+		log.Information("Delete feature state started");
 
-        return Ok(Map(result.Value));
-    }
+		var result = await _deleteHandler.HandleAsync(new DeleteFeatureStateCommand { Id = id }, cancellationToken);
 
-    [HttpDelete("{id:guid}")]
-    public async Task<ActionResult> Delete([FromRoute] Guid id, CancellationToken cancellationToken)
-    {
-        var log = Log.ForContext<FeatureStatesController>()
-            .ForContext("id", id);
+		if (result.IsFailed)
+		{
+			return result.Errors.Any(e => e.Message == "NotFound")
+				? NotFound()
+				: Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
+		}
 
-        log.Information("Delete feature state started");
+		return NoContent();
+	}
 
-        var result = await _deleteHandler.HandleAsync(new DeleteFeatureStateCommand { Id = id }, cancellationToken);
-
-        if (result.IsFailed)
-        {
-            if (result.Errors.Any(e => e.Message == "NotFound"))
-            {
-                return NotFound();
-            }
-
-            return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
-        }
-
-        return NoContent();
-    }
-
-    private static FeatureStateResponse Map(FeatureState model) => new()
-    {
-        Id = model.Id,
-        FeatureId = model.FeatureId,
-        EnvironmentId = model.EnvironmentId,
-        Enabled = model.Enabled,
-        Reason = model.Reason
-    };
+	private static FeatureStateResponse Map(FeatureState model) => new()
+	{
+		Id = model.Id,
+		FeatureId = model.FeatureId,
+		EnvironmentId = model.EnvironmentId,
+		Enabled = model.Enabled,
+		Reason = model.Reason
+	};
 }
-
-

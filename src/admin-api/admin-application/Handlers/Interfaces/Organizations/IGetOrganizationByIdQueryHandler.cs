@@ -1,12 +1,12 @@
 using admin_application.Queries;
+
 using admin_domain.Entities;
+
 using FluentResults;
 
 namespace admin_application.Handlers.Interfaces.Organizations;
 
 public interface IGetOrganizationByIdQueryHandler
 {
-    Task<Result<Organization>> HandleAsync(GetOrganizationByIdQuery query, CancellationToken cancellationToken);
+	Task<Result<Organization>> HandleAsync(GetOrganizationByIdQuery query, CancellationToken cancellationToken);
 }
-
-
