@@ -1,8 +1,9 @@
 # Willow
 
 <p align="center">
-<img src="https://github.com/MatheusSw/willow/actions/workflows/dotnet-test.yml/badge.svg" alt="Dotnet Test">
-<img src="https://github.com/MatheusSw/willow/actions/workflows/dotnet-build.yml/badge.svg?branch=develop" alt="Dotnet Build Status">
+<img src="https://github.com/MatheusSw/willow/actions/workflows/dotnet-test.yml/badge.svg?branch=main" alt="Dotnet Test">
+<img src="https://github.com/MatheusSw/willow/actions/workflows/dotnet-build.yml/badge.svg?branch=main" alt="Dotnet Build Status">
+<img src="https://github.com/MatheusSw/willow/actions/workflows/quality.yml/badge.svg?branch=main" alt="SonarQube Status">
 <a href="./LICENSE"><img src="https://img.shields.io/badge/license-apache_2.0-orange" alt="License"></a>
 </p>
 
