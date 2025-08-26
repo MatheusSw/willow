@@ -1,169 +1,151 @@
 using admin_api.DTOs.Request;
 using admin_api.DTOs.Response;
+
 using admin_application.Commands;
 using admin_application.Handlers.Interfaces.Projects;
 using admin_application.Interfaces;
 using admin_application.Queries;
+
 using admin_domain;
 using admin_domain.Entities;
+
 using FluentResults;
+
 using Microsoft.AspNetCore.Mvc;
+
 using Serilog;
 
 namespace admin_api.Controllers;
 
 [ApiController]
 [Route("v1/projects")]
-public sealed class ProjectsController : ControllerBase
+public sealed class ProjectsController(
+	ICreateProjectCommandHandler createHandler,
+	IUpdateProjectCommandHandler updateHandler,
+	IDeleteProjectCommandHandler deleteHandler,
+	IGetProjectByIdQueryHandler getByIdHandler,
+	IListProjectsQueryHandler listHandler) : ControllerBase
 {
-    private readonly ICreateProjectCommandHandler _createHandler;
-    private readonly IUpdateProjectCommandHandler _updateHandler;
-    private readonly IDeleteProjectCommandHandler _deleteHandler;
-    private readonly IGetProjectByIdQueryHandler _getByIdHandler;
-    private readonly IListProjectsQueryHandler _listHandler;
+	[HttpGet]
+	public async Task<ActionResult<List<ProjectResponse>>> List([FromQuery] Guid? orgId, CancellationToken cancellationToken)
+	{
+		var log = Log.ForContext<ProjectsController>()
+			.ForContext("orgId", orgId);
 
-    public ProjectsController(
-        ICreateProjectCommandHandler createHandler,
-        IUpdateProjectCommandHandler updateHandler,
-        IDeleteProjectCommandHandler deleteHandler,
-        IGetProjectByIdQueryHandler getByIdHandler,
-        IListProjectsQueryHandler listHandler)
-    {
-        _createHandler = createHandler;
-        _updateHandler = updateHandler;
-        _deleteHandler = deleteHandler;
-        _getByIdHandler = getByIdHandler;
-        _listHandler = listHandler;
-    }
+		log.Information("List projects started");
+		var result = await listHandler.HandleAsync(new ListProjectsQuery { OrgId = orgId }, cancellationToken);
 
-    [HttpGet]
-    public async Task<ActionResult<List<ProjectResponse>>> List([FromQuery] Guid? orgId, CancellationToken cancellationToken)
-    {
-        var log = Log.ForContext<ProjectsController>()
-            .ForContext("orgId", orgId);
+		if (result.IsFailed)
+		{
+			return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
+		}
 
-        log.Information("List projects started");
-        var result = await _listHandler.HandleAsync(new ListProjectsQuery { OrgId = orgId }, cancellationToken);
+		var response = result.Value.Select(Map).ToList();
+		if (response.Count == 0)
+		{
+			log.Information("List projects completed: no content");
+			return NoContent();
+		}
 
-        if (result.IsFailed)
-        {
-            return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
-        }
+		log.Information("List projects completed: {Count}", response.Count);
+		return Ok(response);
+	}
 
-        var response = result.Value.Select(Map).ToList();
-        if (response.Count == 0)
-        {
-            log.Information("List projects completed: no content");
-            return NoContent();
-        }
+	[HttpGet("{id:guid}")]
+	public async Task<ActionResult<ProjectResponse>> GetById([FromRoute] Guid id, CancellationToken cancellationToken)
+	{
+		var log = Log.ForContext<ProjectsController>()
+			.ForContext("id", id);
 
-        log.Information("List projects completed: {Count}", response.Count);
-        return Ok(response);
-    }
+		log.Information("Get project started");
 
-    [HttpGet("{id:guid}")]
-    public async Task<ActionResult<ProjectResponse>> GetById([FromRoute] Guid id, CancellationToken cancellationToken)
-    {
-        var log = Log.ForContext<ProjectsController>()
-            .ForContext("id", id);
+		var result = await getByIdHandler.HandleAsync(new GetProjectByIdQuery { Id = id }, cancellationToken);
 
-        log.Information("Get project started");
+		if (result.IsFailed)
+		{
+			return result.Errors.Any(e => e.Message == "NotFound")
+				? (ActionResult<ProjectResponse>)NotFound()
+				: (ActionResult<ProjectResponse>)Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
+		}
 
-        var result = await _getByIdHandler.HandleAsync(new GetProjectByIdQuery { Id = id }, cancellationToken);
+		return Ok(Map(result.Value));
+	}
 
-        if (result.IsFailed)
-        {
-            if (result.Errors.Any(e => e.Message == "NotFound"))
-            {
-                return NotFound();
-            }
-            return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
-        }
+	[HttpPost]
+	public async Task<ActionResult<ProjectResponse>> Create([FromBody] CreateProjectRequest request, CancellationToken cancellationToken)
+	{
+		var log = Log.ForContext<ProjectsController>()
+			.ForContext("orgId", request.OrgId)
+			.ForContext("name", request.Name);
 
-        return Ok(Map(result.Value));
-    }
+		log.Information("Create project started");
 
-    [HttpPost]
-    public async Task<ActionResult<ProjectResponse>> Create([FromBody] CreateProjectRequest request, CancellationToken cancellationToken)
-    {
-        var log = Log.ForContext<ProjectsController>()
-            .ForContext("orgId", request.OrgId)
-            .ForContext("name", request.Name);
+		var result = await createHandler.HandleAsync(new CreateProjectCommand
+		{
+			OrgId = request.OrgId,
+			Name = request.Name
+		}, cancellationToken);
 
-        log.Information("Create project started");
+		if (result.IsFailed)
+		{
+			return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
+		}
 
-        var result = await _createHandler.HandleAsync(new CreateProjectCommand
-        {
-            OrgId = request.OrgId,
-            Name = request.Name
-        }, cancellationToken);
+		var created = Map(result.Value);
+		return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+	}
 
-        if (result.IsFailed)
-        {
-            return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
-        }
+	[HttpPut("{id:guid}")]
+	public async Task<ActionResult<ProjectResponse>> Update([FromRoute] Guid id, [FromBody] UpdateProjectRequest request, CancellationToken cancellationToken)
+	{
+		var log = Log.ForContext<ProjectsController>()
+			.ForContext("id", id)
+			.ForContext("orgId", request.OrgId)
+			.ForContext("name", request.Name);
 
-        var created = Map(result.Value);
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
-    }
+		log.Information("Update project started");
 
-    [HttpPut("{id:guid}")]
-    public async Task<ActionResult<ProjectResponse>> Update([FromRoute] Guid id, [FromBody] UpdateProjectRequest request, CancellationToken cancellationToken)
-    {
-        var log = Log.ForContext<ProjectsController>()
-            .ForContext("id", id)
-            .ForContext("orgId", request.OrgId)
-            .ForContext("name", request.Name);
+		var result = await updateHandler.HandleAsync(new UpdateProjectCommand
+		{
+			Id = id,
+			OrgId = request.OrgId,
+			Name = request.Name
+		}, cancellationToken);
 
-        log.Information("Update project started");
+		if (result.IsFailed)
+		{
+			return result.Errors.Any(e => e.Message == "NotFound")
+				? (ActionResult<ProjectResponse>)NotFound()
+				: (ActionResult<ProjectResponse>)Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
+		}
 
-        var result = await _updateHandler.HandleAsync(new UpdateProjectCommand
-        {
-            Id = id,
-            OrgId = request.OrgId,
-            Name = request.Name
-        }, cancellationToken);
+		return Ok(Map(result.Value));
+	}
 
-        if (result.IsFailed)
-        {
-            if (result.Errors.Any(e => e.Message == "NotFound"))
-            {
-                return NotFound();
-            }
-            return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
-        }
+	[HttpDelete("{id:guid}")]
+	public async Task<ActionResult> Delete([FromRoute] Guid id, CancellationToken cancellationToken)
+	{
+		var log = Log.ForContext<ProjectsController>()
+			.ForContext("id", id);
 
-        return Ok(Map(result.Value));
-    }
+		log.Information("Delete project started");
 
-    [HttpDelete("{id:guid}")]
-    public async Task<ActionResult> Delete([FromRoute] Guid id, CancellationToken cancellationToken)
-    {
-        var log = Log.ForContext<ProjectsController>()
-            .ForContext("id", id);
+		var result = await deleteHandler.HandleAsync(new DeleteProjectCommand { Id = id }, cancellationToken);
 
-        log.Information("Delete project started");
+		if (result.IsFailed)
+		{
+			return result.Errors.Any(e => e.Message == "NotFound")
+				? NotFound()
+				: Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
+		}
 
-        var result = await _deleteHandler.HandleAsync(new DeleteProjectCommand { Id = id }, cancellationToken);
+		return NoContent();
+	}
 
-        if (result.IsFailed)
-        {
-            if (result.Errors.Any(e => e.Message == "NotFound"))
-            {
-                return NotFound();
-            }
-            return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
-        }
-
-        return NoContent();
-    }
-
-    private static ProjectResponse Map(Project model) => new()
-    {
-        Id = model.Id,
-        OrgId = model.OrgId,
-        Name = model.Name
-    };
+	private static ProjectResponse Map(Project model) => new()
+	{
+		Id = model.Id,
+		OrgId = model.OrgId,
+		Name = model.Name
+	};
 }
-
-

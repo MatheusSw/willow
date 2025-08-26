@@ -1,169 +1,147 @@
 using admin_api.DTOs.Request;
 using admin_api.DTOs.Response;
+
 using admin_application.Commands;
 using admin_application.Handlers.Interfaces.Environments;
 using admin_application.Queries;
+
 using admin_domain.Entities;
+
 using Microsoft.AspNetCore.Mvc;
+
 using Serilog;
 
 namespace admin_api.Controllers;
 
 [ApiController]
 [Route("v1/environments")]
-public sealed class EnvironmentsController : ControllerBase
+public sealed class EnvironmentsController(
+	ICreateEnvironmentCommandHandler createHandler,
+	IUpdateEnvironmentCommandHandler updateHandler,
+	IDeleteEnvironmentCommandHandler deleteHandler,
+	IGetEnvironmentByIdQueryHandler getByIdHandler,
+	IListEnvironmentsQueryHandler listHandler) : ControllerBase
 {
-    private readonly ICreateEnvironmentCommandHandler _createHandler;
-    private readonly IUpdateEnvironmentCommandHandler _updateHandler;
-    private readonly IDeleteEnvironmentCommandHandler _deleteHandler;
-    private readonly IGetEnvironmentByIdQueryHandler _getByIdHandler;
-    private readonly IListEnvironmentsQueryHandler _listHandler;
+	[HttpGet]
+	public async Task<ActionResult<List<EnvironmentResponse>>> List([FromQuery] Guid? projectId, CancellationToken cancellationToken)
+	{
+		var log = Log.ForContext<EnvironmentsController>()
+			.ForContext("projectId", projectId);
 
-    public EnvironmentsController(
-        ICreateEnvironmentCommandHandler createHandler,
-        IUpdateEnvironmentCommandHandler updateHandler,
-        IDeleteEnvironmentCommandHandler deleteHandler,
-        IGetEnvironmentByIdQueryHandler getByIdHandler,
-        IListEnvironmentsQueryHandler listHandler)
-    {
-        _createHandler = createHandler;
-        _updateHandler = updateHandler;
-        _deleteHandler = deleteHandler;
-        _getByIdHandler = getByIdHandler;
-        _listHandler = listHandler;
-    }
+		log.Information("List environments started");
+		var result = await listHandler.HandleAsync(new ListEnvironmentsQuery { ProjectId = projectId }, cancellationToken);
 
-    [HttpGet]
-    public async Task<ActionResult<List<EnvironmentResponse>>> List([FromQuery] Guid? projectId, CancellationToken cancellationToken)
-    {
-        var log = Log.ForContext<EnvironmentsController>()
-            .ForContext("projectId", projectId);
+		if (result.IsFailed)
+		{
+			return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
+		}
 
-        log.Information("List environments started");
-        var result = await _listHandler.HandleAsync(new ListEnvironmentsQuery { ProjectId = projectId }, cancellationToken);
+		var response = result.Value.Select(Map).ToList();
+		if (response.Count == 0)
+		{
+			log.Information("List environments completed: no content");
+			return NoContent();
+		}
 
-        if (result.IsFailed)
-        {
-            return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
-        }
+		log.Information("List environments completed: {Count}", response.Count);
+		return Ok(response);
+	}
 
-        var response = result.Value.Select(Map).ToList();
-        if (response.Count == 0)
-        {
-            log.Information("List environments completed: no content");
-            return NoContent();
-        }
+	[HttpGet("{id:guid}")]
+	public async Task<ActionResult<EnvironmentResponse>> GetById([FromRoute] Guid id, CancellationToken cancellationToken)
+	{
+		var log = Log.ForContext<EnvironmentsController>()
+			.ForContext("id", id);
 
-        log.Information("List environments completed: {Count}", response.Count);
-        return Ok(response);
-    }
+		log.Information("Get environment started");
 
-    [HttpGet("{id:guid}")]
-    public async Task<ActionResult<EnvironmentResponse>> GetById([FromRoute] Guid id, CancellationToken cancellationToken)
-    {
-        var log = Log.ForContext<EnvironmentsController>()
-            .ForContext("id", id);
+		var result = await getByIdHandler.HandleAsync(new GetEnvironmentByIdQuery { Id = id }, cancellationToken);
 
-        log.Information("Get environment started");
+		if (result.IsFailed)
+		{
+			return result.Errors.Any(e => e.Message == "NotFound")
+				? (ActionResult<EnvironmentResponse>)NotFound()
+				: (ActionResult<EnvironmentResponse>)Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
+		}
 
-        var result = await _getByIdHandler.HandleAsync(new GetEnvironmentByIdQuery { Id = id }, cancellationToken);
+		return Ok(Map(result.Value));
+	}
 
-        if (result.IsFailed)
-        {
-            if (result.Errors.Any(e => e.Message == "NotFound"))
-            {
-                return NotFound();
-            }
+	[HttpPost]
+	public async Task<ActionResult<EnvironmentResponse>> Create([FromBody] CreateEnvironmentRequest request, CancellationToken cancellationToken)
+	{
+		var log = Log.ForContext<EnvironmentsController>()
+			.ForContext("projectId", request.ProjectId)
+			.ForContext("key", request.Key);
 
-            return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
-        }
+		log.Information("Create environment started");
 
-        return Ok(Map(result.Value));
-    }
+		var result = await createHandler.HandleAsync(new CreateEnvironmentCommand
+		{
+			ProjectId = request.ProjectId,
+			Key = request.Key
+		}, cancellationToken);
 
-    [HttpPost]
-    public async Task<ActionResult<EnvironmentResponse>> Create([FromBody] CreateEnvironmentRequest request, CancellationToken cancellationToken)
-    {
-        var log = Log.ForContext<EnvironmentsController>()
-            .ForContext("projectId", request.ProjectId)
-            .ForContext("key", request.Key);
+		if (result.IsFailed)
+		{
+			return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
+		}
 
-        log.Information("Create environment started");
+		var created = Map(result.Value);
+		return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+	}
 
-        var result = await _createHandler.HandleAsync(new CreateEnvironmentCommand
-        {
-            ProjectId = request.ProjectId,
-            Key = request.Key
-        }, cancellationToken);
+	[HttpPut("{id:guid}")]
+	public async Task<ActionResult<EnvironmentResponse>> Update([FromRoute] Guid id, [FromBody] UpdateEnvironmentRequest request, CancellationToken cancellationToken)
+	{
+		var log = Log.ForContext<EnvironmentsController>()
+			.ForContext("id", id)
+			.ForContext("projectId", request.ProjectId)
+			.ForContext("key", request.Key);
 
-        if (result.IsFailed)
-        {
-            return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
-        }
+		log.Information("Update environment started");
 
-        var created = Map(result.Value);
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
-    }
+		var result = await updateHandler.HandleAsync(new UpdateEnvironmentCommand
+		{
+			Id = id,
+			ProjectId = request.ProjectId,
+			Key = request.Key
+		}, cancellationToken);
 
-    [HttpPut("{id:guid}")]
-    public async Task<ActionResult<EnvironmentResponse>> Update([FromRoute] Guid id, [FromBody] UpdateEnvironmentRequest request, CancellationToken cancellationToken)
-    {
-        var log = Log.ForContext<EnvironmentsController>()
-            .ForContext("id", id)
-            .ForContext("projectId", request.ProjectId)
-            .ForContext("key", request.Key);
+		if (result.IsFailed)
+		{
+			return result.Errors.Any(e => e.Message == "NotFound")
+				? (ActionResult<EnvironmentResponse>)NotFound()
+				: (ActionResult<EnvironmentResponse>)Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
+		}
 
-        log.Information("Update environment started");
+		return Ok(Map(result.Value));
+	}
 
-        var result = await _updateHandler.HandleAsync(new UpdateEnvironmentCommand
-        {
-            Id = id,
-            ProjectId = request.ProjectId,
-            Key = request.Key
-        }, cancellationToken);
+	[HttpDelete("{id:guid}")]
+	public async Task<ActionResult> Delete([FromRoute] Guid id, CancellationToken cancellationToken)
+	{
+		var log = Log.ForContext<EnvironmentsController>()
+			.ForContext("id", id);
 
-        if (result.IsFailed)
-        {
-            if (result.Errors.Any(e => e.Message == "NotFound"))
-            {
-                return NotFound();
-            }
+		log.Information("Delete environment started");
 
-            return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
-        }
+		var result = await deleteHandler.HandleAsync(new DeleteEnvironmentCommand { Id = id }, cancellationToken);
 
-        return Ok(Map(result.Value));
-    }
+		if (result.IsFailed)
+		{
+			return result.Errors.Any(e => e.Message == "NotFound")
+				? NotFound()
+				: Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
+		}
 
-    [HttpDelete("{id:guid}")]
-    public async Task<ActionResult> Delete([FromRoute] Guid id, CancellationToken cancellationToken)
-    {
-        var log = Log.ForContext<EnvironmentsController>()
-            .ForContext("id", id);
+		return NoContent();
+	}
 
-        log.Information("Delete environment started");
-
-        var result = await _deleteHandler.HandleAsync(new DeleteEnvironmentCommand { Id = id }, cancellationToken);
-
-        if (result.IsFailed)
-        {
-            if (result.Errors.Any(e => e.Message == "NotFound"))
-            {
-                return NotFound();
-            }
-
-            return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
-        }
-
-        return NoContent();
-    }
-
-    private static EnvironmentResponse Map(admin_domain.Entities.Environment model) => new()
-    {
-        Id = model.Id,
-        ProjectId = model.ProjectId,
-        Key = model.Key
-    };
+	private static EnvironmentResponse Map(admin_domain.Entities.Environment model) => new()
+	{
+		Id = model.Id,
+		ProjectId = model.ProjectId,
+		Key = model.Key
+	};
 }
-
-
