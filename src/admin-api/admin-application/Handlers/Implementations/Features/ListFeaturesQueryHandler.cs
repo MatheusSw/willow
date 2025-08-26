@@ -12,13 +12,13 @@ namespace admin_application.Handlers.Implementations.Features;
 
 public sealed class ListFeaturesQueryHandler(IFeatureRepository repository) : IListFeaturesQueryHandler
 {
-	public async Task<Result<List<Feature>>> HandleAsync(ListFeaturesQuery query, CancellationToken cancellationToken)
-	{
-		var log = Log.ForContext<ListFeaturesQueryHandler>()
-			.ForContext("ProjectId", query.ProjectId);
-		log.Information("ListFeatures started");
-		var result = await repository.ListAsync(query.ProjectId, cancellationToken);
-		log.Information("ListFeatures completed: {Success} Count={Count}", result.IsSuccess, result.ValueOrDefault?.Count ?? 0);
-		return result;
-	}
+    public async Task<Result<List<Feature>>> HandleAsync(ListFeaturesQuery query, CancellationToken cancellationToken)
+    {
+        var log = Log.ForContext<ListFeaturesQueryHandler>()
+            .ForContext("ProjectId", query.ProjectId);
+        log.Information("ListFeatures started");
+        var result = await repository.ListAsync(query.ProjectId, cancellationToken);
+        log.Information("ListFeatures completed: {Success} Count={Count}", result.IsSuccess, result.ValueOrDefault?.Count ?? 0);
+        return result;
+    }
 }

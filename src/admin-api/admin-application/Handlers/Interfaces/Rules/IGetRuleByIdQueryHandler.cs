@@ -8,5 +8,5 @@ namespace admin_application.Handlers.Interfaces.Rules;
 
 public interface IGetRuleByIdQueryHandler
 {
-	Task<Result<Rule>> HandleAsync(GetRuleByIdQuery query, CancellationToken cancellationToken);
+    Task<Result<Rule>> HandleAsync(GetRuleByIdQuery query, CancellationToken cancellationToken);
 }

@@ -12,20 +12,20 @@ namespace admin_application.Handlers.Implementations.FeatureStates;
 
 public sealed class CreateFeatureStateCommandHandler(IFeatureStateRepository repository) : ICreateFeatureStateCommandHandler
 {
-	public async Task<Result<FeatureState>> HandleAsync(CreateFeatureStateCommand command, CancellationToken cancellationToken)
-	{
-		var log = Log.ForContext<CreateFeatureStateCommandHandler>()
-			.ForContext("FeatureId", command.FeatureId)
-			.ForContext("EnvironmentId", command.EnvironmentId)
-			.ForContext("Enabled", command.Enabled);
-		log.Information("CreateFeatureState started");
+    public async Task<Result<FeatureState>> HandleAsync(CreateFeatureStateCommand command, CancellationToken cancellationToken)
+    {
+        var log = Log.ForContext<CreateFeatureStateCommandHandler>()
+            .ForContext("FeatureId", command.FeatureId)
+            .ForContext("EnvironmentId", command.EnvironmentId)
+            .ForContext("Enabled", command.Enabled);
+        log.Information("CreateFeatureState started");
 
-		var model = new FeatureState { Id = Guid.NewGuid(), FeatureId = command.FeatureId, EnvironmentId = command.EnvironmentId, Enabled = command.Enabled, Reason = command.Reason };
+        var model = new FeatureState { Id = Guid.NewGuid(), FeatureId = command.FeatureId, EnvironmentId = command.EnvironmentId, Enabled = command.Enabled, Reason = command.Reason };
 
-		var result = await repository.CreateAsync(model, cancellationToken);
+        var result = await repository.CreateAsync(model, cancellationToken);
 
-		log.Information("CreateFeatureState completed: {Success}", result.IsSuccess);
+        log.Information("CreateFeatureState completed: {Success}", result.IsSuccess);
 
-		return result;
-	}
+        return result;
+    }
 }

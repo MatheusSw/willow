@@ -8,5 +8,5 @@ namespace admin_application.Handlers.Interfaces.Features;
 
 public interface IUpdateFeatureCommandHandler
 {
-	Task<Result<Feature>> HandleAsync(UpdateFeatureCommand command, CancellationToken cancellationToken);
+    Task<Result<Feature>> HandleAsync(UpdateFeatureCommand command, CancellationToken cancellationToken);
 }

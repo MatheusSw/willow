@@ -10,17 +10,17 @@ namespace admin_application.Handlers.Implementations.Organizations;
 
 public sealed class DeleteOrganizationCommandHandler(IOrganizationRepository repository) : IDeleteOrganizationCommandHandler
 {
-	public async Task<Result> HandleAsync(DeleteOrganizationCommand command, CancellationToken cancellationToken)
-	{
-		var log = Log.ForContext<DeleteOrganizationCommandHandler>()
-			.ForContext("Id", command.Id);
+    public async Task<Result> HandleAsync(DeleteOrganizationCommand command, CancellationToken cancellationToken)
+    {
+        var log = Log.ForContext<DeleteOrganizationCommandHandler>()
+            .ForContext("Id", command.Id);
 
-		log.Information("DeleteOrganization started");
+        log.Information("DeleteOrganization started");
 
-		var result = await repository.DeleteAsync(command.Id, cancellationToken);
+        var result = await repository.DeleteAsync(command.Id, cancellationToken);
 
-		log.Information("DeleteOrganization completed: {Success}", result.IsSuccess);
+        log.Information("DeleteOrganization completed: {Success}", result.IsSuccess);
 
-		return result;
-	}
+        return result;
+    }
 }

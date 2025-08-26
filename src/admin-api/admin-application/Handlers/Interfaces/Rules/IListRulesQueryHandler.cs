@@ -8,5 +8,5 @@ namespace admin_application.Handlers.Interfaces.Rules;
 
 public interface IListRulesQueryHandler
 {
-	Task<Result<List<Rule>>> HandleAsync(ListRulesQuery query, CancellationToken cancellationToken);
+    Task<Result<List<Rule>>> HandleAsync(ListRulesQuery query, CancellationToken cancellationToken);
 }

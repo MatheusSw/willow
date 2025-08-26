@@ -8,5 +8,5 @@ namespace admin_application.Handlers.Interfaces.Rules;
 
 public interface ICreateRuleCommandHandler
 {
-	Task<Result<Rule>> HandleAsync(CreateRuleCommand command, CancellationToken cancellationToken);
+    Task<Result<Rule>> HandleAsync(CreateRuleCommand command, CancellationToken cancellationToken);
 }

@@ -8,5 +8,5 @@ namespace admin_application.Handlers.Interfaces.Organizations;
 
 public interface IGetOrganizationByIdQueryHandler
 {
-	Task<Result<Organization>> HandleAsync(GetOrganizationByIdQuery query, CancellationToken cancellationToken);
+    Task<Result<Organization>> HandleAsync(GetOrganizationByIdQuery query, CancellationToken cancellationToken);
 }

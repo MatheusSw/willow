@@ -12,16 +12,16 @@ namespace admin_application.Handlers.Implementations.Projects;
 
 public sealed class ListProjectsQueryHandler(IProjectRepository repository) : IListProjectsQueryHandler
 {
-	public async Task<Result<List<Project>>> HandleAsync(ListProjectsQuery query, CancellationToken cancellationToken)
-	{
-		var log = Log.ForContext<ListProjectsQueryHandler>()
-			.ForContext("OrgId", query.OrgId);
-		log.Information("ListProjects started");
+    public async Task<Result<List<Project>>> HandleAsync(ListProjectsQuery query, CancellationToken cancellationToken)
+    {
+        var log = Log.ForContext<ListProjectsQueryHandler>()
+            .ForContext("OrgId", query.OrgId);
+        log.Information("ListProjects started");
 
-		var result = await repository.ListAsync(query.OrgId, cancellationToken);
+        var result = await repository.ListAsync(query.OrgId, cancellationToken);
 
-		log.Information("ListProjects completed: {Success} Count={Count}", result.IsSuccess, result.ValueOrDefault?.Count ?? 0);
+        log.Information("ListProjects completed: {Success} Count={Count}", result.IsSuccess, result.ValueOrDefault?.Count ?? 0);
 
-		return result;
-	}
+        return result;
+    }
 }

@@ -8,5 +8,5 @@ namespace admin_application.Handlers.Interfaces.FeatureStates;
 
 public interface IGetFeatureStateByIdQueryHandler
 {
-	Task<Result<FeatureState>> HandleAsync(GetFeatureStateByIdQuery query, CancellationToken cancellationToken);
+    Task<Result<FeatureState>> HandleAsync(GetFeatureStateByIdQuery query, CancellationToken cancellationToken);
 }

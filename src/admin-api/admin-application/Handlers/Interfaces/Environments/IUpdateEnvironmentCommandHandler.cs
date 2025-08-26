@@ -8,5 +8,5 @@ namespace admin_application.Handlers.Interfaces.Environments;
 
 public interface IUpdateEnvironmentCommandHandler
 {
-	Task<Result<admin_domain.Entities.Environment>> HandleAsync(UpdateEnvironmentCommand command, CancellationToken cancellationToken);
+    Task<Result<admin_domain.Entities.Environment>> HandleAsync(UpdateEnvironmentCommand command, CancellationToken cancellationToken);
 }

@@ -28,10 +28,13 @@ public sealed class UpdateFeatureStateCommandHandler(
 
         var model = new FeatureState
         {
-            Id = command.Id, FeatureId = command.FeatureId, EnvironmentId = command.EnvironmentId,
-            Enabled = command.Enabled, Reason = command.Reason
+            Id = command.Id,
+            FeatureId = command.FeatureId,
+            EnvironmentId = command.EnvironmentId,
+            Enabled = command.Enabled,
+            Reason = command.Reason
         };
-        
+
         var updateResult = await featureStateRepository.UpdateAsync(model, cancellationToken);
         if (updateResult.IsFailed)
         {

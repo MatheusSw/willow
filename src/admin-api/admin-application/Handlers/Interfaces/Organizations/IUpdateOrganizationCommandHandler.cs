@@ -8,5 +8,5 @@ namespace admin_application.Handlers.Interfaces.Organizations;
 
 public interface IUpdateOrganizationCommandHandler
 {
-	Task<Result<Organization>> HandleAsync(UpdateOrganizationCommand command, CancellationToken cancellationToken);
+    Task<Result<Organization>> HandleAsync(UpdateOrganizationCommand command, CancellationToken cancellationToken);
 }

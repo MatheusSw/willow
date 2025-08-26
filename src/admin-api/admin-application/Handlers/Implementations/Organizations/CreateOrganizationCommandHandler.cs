@@ -12,18 +12,18 @@ namespace admin_application.Handlers.Implementations.Organizations;
 
 public sealed class CreateOrganizationCommandHandler(IOrganizationRepository repository) : ICreateOrganizationCommandHandler
 {
-	public async Task<Result<Organization>> HandleAsync(CreateOrganizationCommand command, CancellationToken cancellationToken)
-	{
-		var log = Log.ForContext<CreateOrganizationCommandHandler>()
-			.ForContext("Name", command.Name);
-		log.Information("CreateOrganization started");
+    public async Task<Result<Organization>> HandleAsync(CreateOrganizationCommand command, CancellationToken cancellationToken)
+    {
+        var log = Log.ForContext<CreateOrganizationCommandHandler>()
+            .ForContext("Name", command.Name);
+        log.Information("CreateOrganization started");
 
-		var model = new Organization { Id = Guid.NewGuid(), Name = command.Name };
+        var model = new Organization { Id = Guid.NewGuid(), Name = command.Name };
 
-		var result = await repository.CreateAsync(model, cancellationToken);
+        var result = await repository.CreateAsync(model, cancellationToken);
 
-		log.Information("CreateOrganization completed: {Success}", result.IsSuccess);
+        log.Information("CreateOrganization completed: {Success}", result.IsSuccess);
 
-		return result;
-	}
+        return result;
+    }
 }

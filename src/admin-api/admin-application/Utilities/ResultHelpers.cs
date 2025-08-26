@@ -17,12 +17,12 @@ public static class ResultHelpers
         if (result == null || result.IsFailed || result.Value == null)
         {
             failureResult = Result.Fail<TResult>(failureMessage);
-            
+
             return true;
         }
 
         failureResult = null;
-        
+
         return false;
     }
 }

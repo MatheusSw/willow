@@ -12,17 +12,17 @@ namespace admin_application.Handlers.Implementations.FeatureStates;
 
 public sealed class ListFeatureStatesQueryHandler(IFeatureStateRepository repository) : IListFeatureStatesQueryHandler
 {
-	public async Task<Result<List<FeatureState>>> HandleAsync(ListFeatureStatesQuery query, CancellationToken cancellationToken)
-	{
-		var log = Log.ForContext<ListFeatureStatesQueryHandler>()
-			.ForContext("FeatureId", query.FeatureId)
-			.ForContext("EnvironmentId", query.EnvironmentId);
-		log.Information("ListFeatureStates started");
+    public async Task<Result<List<FeatureState>>> HandleAsync(ListFeatureStatesQuery query, CancellationToken cancellationToken)
+    {
+        var log = Log.ForContext<ListFeatureStatesQueryHandler>()
+            .ForContext("FeatureId", query.FeatureId)
+            .ForContext("EnvironmentId", query.EnvironmentId);
+        log.Information("ListFeatureStates started");
 
-		var result = await repository.ListAsync(query.FeatureId, query.EnvironmentId, cancellationToken);
+        var result = await repository.ListAsync(query.FeatureId, query.EnvironmentId, cancellationToken);
 
-		log.Information("ListFeatureStates completed: {Success} Count={Count}", result.IsSuccess, result.ValueOrDefault?.Count ?? 0);
+        log.Information("ListFeatureStates completed: {Success} Count={Count}", result.IsSuccess, result.ValueOrDefault?.Count ?? 0);
 
-		return result;
-	}
+        return result;
+    }
 }

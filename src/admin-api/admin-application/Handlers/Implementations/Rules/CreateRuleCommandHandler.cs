@@ -13,30 +13,30 @@ namespace admin_application.Handlers.Implementations.Rules;
 
 public sealed class CreateRuleCommandHandler(IRuleRepository repository) : ICreateRuleCommandHandler
 {
-	public async Task<Result<Rule>> HandleAsync(CreateRuleCommand command, CancellationToken cancellationToken)
-	{
-		var log = Log.ForContext<CreateRuleCommandHandler>()
-			.ForContext("FeatureId", command.FeatureId)
-			.ForContext("EnvironmentId", command.EnvironmentId)
-			.ForContext("Priority", command.Priority)
-			.ForContext("MatchType", command.MatchType);
+    public async Task<Result<Rule>> HandleAsync(CreateRuleCommand command, CancellationToken cancellationToken)
+    {
+        var log = Log.ForContext<CreateRuleCommandHandler>()
+            .ForContext("FeatureId", command.FeatureId)
+            .ForContext("EnvironmentId", command.EnvironmentId)
+            .ForContext("Priority", command.Priority)
+            .ForContext("MatchType", command.MatchType);
 
-		log.Information("CreateRule started");
+        log.Information("CreateRule started");
 
-		var model = new Rule
-		{
-			Id = Guid.NewGuid(),
-			FeatureId = command.FeatureId,
-			EnvironmentId = command.EnvironmentId,
-			Priority = command.Priority,
-			MatchType = string.Equals(command.MatchType, "any", StringComparison.OrdinalIgnoreCase) ? admin_domain.Rules.MatchType.Any : admin_domain.Rules.MatchType.All,
-			Conditions = command.Conditions
-		};
+        var model = new Rule
+        {
+            Id = Guid.NewGuid(),
+            FeatureId = command.FeatureId,
+            EnvironmentId = command.EnvironmentId,
+            Priority = command.Priority,
+            MatchType = string.Equals(command.MatchType, "any", StringComparison.OrdinalIgnoreCase) ? admin_domain.Rules.MatchType.Any : admin_domain.Rules.MatchType.All,
+            Conditions = command.Conditions
+        };
 
-		var result = await repository.CreateAsync(model, cancellationToken);
+        var result = await repository.CreateAsync(model, cancellationToken);
 
-		log.Information("CreateRule completed: {Success}", result.IsSuccess);
+        log.Information("CreateRule completed: {Success}", result.IsSuccess);
 
-		return result;
-	}
+        return result;
+    }
 }

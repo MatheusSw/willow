@@ -12,16 +12,16 @@ namespace admin_application.Handlers.Implementations.Projects;
 
 public sealed class GetProjectByIdQueryHandler(IProjectRepository repository) : IGetProjectByIdQueryHandler
 {
-	public async Task<Result<Project>> HandleAsync(GetProjectByIdQuery query, CancellationToken cancellationToken)
-	{
-		var log = Log.ForContext<GetProjectByIdQueryHandler>()
-			.ForContext("Id", query.Id);
-		log.Information("GetProjectById started");
+    public async Task<Result<Project>> HandleAsync(GetProjectByIdQuery query, CancellationToken cancellationToken)
+    {
+        var log = Log.ForContext<GetProjectByIdQueryHandler>()
+            .ForContext("Id", query.Id);
+        log.Information("GetProjectById started");
 
-		var result = await repository.GetByIdAsync(query.Id, cancellationToken);
+        var result = await repository.GetByIdAsync(query.Id, cancellationToken);
 
-		log.Information("GetProjectById completed: {Success}", result.IsSuccess);
+        log.Information("GetProjectById completed: {Success}", result.IsSuccess);
 
-		return result;
-	}
+        return result;
+    }
 }

@@ -9,5 +9,5 @@ namespace admin_application.Handlers.Interfaces.Projects;
 
 public interface ICreateProjectCommandHandler
 {
-	Task<Result<Project>> HandleAsync(CreateProjectCommand command, CancellationToken cancellationToken);
+    Task<Result<Project>> HandleAsync(CreateProjectCommand command, CancellationToken cancellationToken);
 }

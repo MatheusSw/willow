@@ -12,16 +12,16 @@ namespace admin_application.Handlers.Implementations.Environments;
 
 public sealed class GetEnvironmentByIdQueryHandler(IEnvironmentRepository repository) : IGetEnvironmentByIdQueryHandler
 {
-	public async Task<Result<admin_domain.Entities.Environment>> HandleAsync(GetEnvironmentByIdQuery query, CancellationToken cancellationToken)
-	{
-		var log = Log.ForContext<GetEnvironmentByIdQueryHandler>()
-			.ForContext("Id", query.Id);
-		log.Information("GetEnvironmentById started");
+    public async Task<Result<admin_domain.Entities.Environment>> HandleAsync(GetEnvironmentByIdQuery query, CancellationToken cancellationToken)
+    {
+        var log = Log.ForContext<GetEnvironmentByIdQueryHandler>()
+            .ForContext("Id", query.Id);
+        log.Information("GetEnvironmentById started");
 
-		var result = await repository.GetByIdAsync(query.Id, cancellationToken);
+        var result = await repository.GetByIdAsync(query.Id, cancellationToken);
 
-		log.Information("GetEnvironmentById completed: {Success}", result.IsSuccess);
+        log.Information("GetEnvironmentById completed: {Success}", result.IsSuccess);
 
-		return result;
-	}
+        return result;
+    }
 }

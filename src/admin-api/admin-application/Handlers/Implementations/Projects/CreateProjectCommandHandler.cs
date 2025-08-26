@@ -13,19 +13,19 @@ namespace admin_application.Handlers.Implementations.Projects;
 
 public sealed class CreateProjectCommandHandler(IProjectRepository repository) : ICreateProjectCommandHandler
 {
-	public async Task<Result<Project>> HandleAsync(CreateProjectCommand command, CancellationToken cancellationToken)
-	{
-		var log = Log.ForContext<CreateProjectCommandHandler>()
-			.ForContext("OrgId", command.OrgId)
-			.ForContext("Name", command.Name);
-		log.Information("CreateProject started");
+    public async Task<Result<Project>> HandleAsync(CreateProjectCommand command, CancellationToken cancellationToken)
+    {
+        var log = Log.ForContext<CreateProjectCommandHandler>()
+            .ForContext("OrgId", command.OrgId)
+            .ForContext("Name", command.Name);
+        log.Information("CreateProject started");
 
-		var model = new Project { Id = Guid.NewGuid(), OrgId = command.OrgId, Name = command.Name };
+        var model = new Project { Id = Guid.NewGuid(), OrgId = command.OrgId, Name = command.Name };
 
-		var result = await repository.CreateAsync(model, cancellationToken);
+        var result = await repository.CreateAsync(model, cancellationToken);
 
-		log.Information("CreateProject completed: {Success}", result.IsSuccess);
+        log.Information("CreateProject completed: {Success}", result.IsSuccess);
 
-		return result;
-	}
+        return result;
+    }
 }

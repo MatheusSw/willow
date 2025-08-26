@@ -8,5 +8,5 @@ namespace admin_application.Handlers.Interfaces.Organizations;
 
 public interface ICreateOrganizationCommandHandler
 {
-	Task<Result<Organization>> HandleAsync(CreateOrganizationCommand command, CancellationToken cancellationToken);
+    Task<Result<Organization>> HandleAsync(CreateOrganizationCommand command, CancellationToken cancellationToken);
 }
