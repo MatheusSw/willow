@@ -20,12 +20,24 @@ public class UpdateFeatureStateCommandHandlerTests
 	{
 		// Arrange
 		var fixture = FixtureFactory.Create();
-		var repo = new Mock<IFeatureStateRepository>();
-		repo.Setup(r => r.UpdateAsync(It.IsAny<FeatureState>(), It.IsAny<CancellationToken>()))
-			.ReturnsAsync((FeatureState fs, CancellationToken _) => Result.Ok(fs));
+		var featureStateRepo = new Mock<IFeatureStateRepository>();
+		var featureRepo = new Mock<IFeatureRepository>();
+		var environmentRepo = new Mock<IEnvironmentRepository>();
+		var eventPublisher = new Mock<IEventPublisher>();
+		var cacheInvalidator = new Mock<ICacheInvalidator>();
 
-		var handler = new UpdateFeatureStateCommandHandler(repo.Object);
-		var cmd = new UpdateFeatureStateCommand { Id = Guid.NewGuid(), FeatureId = Guid.NewGuid(), EnvironmentId = Guid.NewGuid(), Enabled = true, Reason = "r" };
+		var feature = new Feature { Id = Guid.NewGuid(), ProjectId = Guid.NewGuid(), Name = "test-feature" };
+		var environment = new admin_domain.Entities.Environment { Id = Guid.NewGuid(), ProjectId = Guid.NewGuid(), Key = "test-env" };
+
+		featureStateRepo.Setup(r => r.UpdateAsync(It.IsAny<FeatureState>(), It.IsAny<CancellationToken>()))
+			.ReturnsAsync((FeatureState fs, CancellationToken _) => Result.Ok(fs));
+		featureRepo.Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+			.ReturnsAsync(Result.Ok(feature));
+		environmentRepo.Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+			.ReturnsAsync(Result.Ok(environment));
+
+		var handler = new UpdateFeatureStateCommandHandler(featureStateRepo.Object, featureRepo.Object, environmentRepo.Object, eventPublisher.Object, cacheInvalidator.Object);
+		var cmd = new UpdateFeatureStateCommand { Id = Guid.NewGuid(), FeatureId = feature.Id, EnvironmentId = environment.Id, Enabled = true, Reason = "r" };
 
 		// Act
 		var result = await handler.HandleAsync(cmd, CancellationToken.None);
@@ -33,7 +45,9 @@ public class UpdateFeatureStateCommandHandlerTests
 		// Assert
 		Assert.True(result.IsSuccess);
 		Assert.Equal(cmd.Id, result.Value.Id);
-		repo.Verify(r => r.UpdateAsync(It.IsAny<FeatureState>(), It.IsAny<CancellationToken>()), Times.Once);
+		featureStateRepo.Verify(r => r.UpdateAsync(It.IsAny<FeatureState>(), It.IsAny<CancellationToken>()), Times.Once);
+		eventPublisher.Verify(e => e.PublishAsync(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<CancellationToken>()), Times.Once);
+		cacheInvalidator.Verify(c => c.InvalidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
 	}
 
 	[Fact]
@@ -41,18 +55,33 @@ public class UpdateFeatureStateCommandHandlerTests
 	{
 		// Arrange
 		var fixture = FixtureFactory.Create();
-		var repo = new Mock<IFeatureStateRepository>();
-		repo.Setup(r => r.UpdateAsync(It.IsAny<FeatureState>(), It.IsAny<CancellationToken>()))
-			.ReturnsAsync(Result.Fail<FeatureState>("NotFound"));
+		var featureStateRepo = new Mock<IFeatureStateRepository>();
+		var featureRepo = new Mock<IFeatureRepository>();
+		var environmentRepo = new Mock<IEnvironmentRepository>();
+		var eventPublisher = new Mock<IEventPublisher>();
+		var cacheInvalidator = new Mock<ICacheInvalidator>();
 
-		var handler = new UpdateFeatureStateCommandHandler(repo.Object);
-		var cmd = new UpdateFeatureStateCommand { Id = Guid.NewGuid(), FeatureId = Guid.NewGuid(), EnvironmentId = Guid.NewGuid(), Enabled = false, Reason = null };
+		var feature = new Feature { Id = Guid.NewGuid(), ProjectId = Guid.NewGuid(), Name = "test-feature" };
+		var environment = new admin_domain.Entities.Environment { Id = Guid.NewGuid(), ProjectId = Guid.NewGuid(), Key = "test-env" };
+
+		featureStateRepo.Setup(r => r.UpdateAsync(It.IsAny<FeatureState>(), It.IsAny<CancellationToken>()))
+			.ReturnsAsync(Result.Fail<FeatureState>("NotFound"));
+		featureRepo.Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+			.ReturnsAsync(Result.Ok(feature));
+		environmentRepo.Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+			.ReturnsAsync(Result.Ok(environment));
+
+		var handler = new UpdateFeatureStateCommandHandler(featureStateRepo.Object, featureRepo.Object, environmentRepo.Object, eventPublisher.Object, cacheInvalidator.Object);
+		var cmd = new UpdateFeatureStateCommand { Id = Guid.NewGuid(), FeatureId = feature.Id, EnvironmentId = environment.Id, Enabled = false, Reason = string.Empty };
 
 		// Act
 		var result = await handler.HandleAsync(cmd, CancellationToken.None);
 
 		// Assert
 		Assert.True(result.IsFailed);
-		repo.Verify(r => r.UpdateAsync(It.IsAny<FeatureState>(), It.IsAny<CancellationToken>()), Times.Once);
+		featureStateRepo.Verify(r => r.UpdateAsync(It.IsAny<FeatureState>(), It.IsAny<CancellationToken>()), Times.Once);
+		// Event publishing and cache invalidation should not be called when update fails
+		eventPublisher.Verify(e => e.PublishAsync(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<CancellationToken>()), Times.Never);
+		cacheInvalidator.Verify(c => c.InvalidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
 	}
 }

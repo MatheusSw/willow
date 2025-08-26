@@ -22,12 +22,6 @@ public sealed class FeatureStatesController(
 	IGetFeatureStateByIdQueryHandler getByIdHandler,
 	IListFeatureStatesQueryHandler listHandler) : ControllerBase
 {
-	private readonly ICreateFeatureStateCommandHandler _createHandler = createHandler;
-	private readonly IUpdateFeatureStateCommandHandler _updateHandler = updateHandler;
-	private readonly IDeleteFeatureStateCommandHandler _deleteHandler = deleteHandler;
-	private readonly IGetFeatureStateByIdQueryHandler _getByIdHandler = getByIdHandler;
-	private readonly IListFeatureStatesQueryHandler _listHandler = listHandler;
-
 	[HttpGet]
 	public async Task<ActionResult<List<FeatureStateResponse>>> List([FromQuery] Guid? featureId, [FromQuery] Guid? environmentId, CancellationToken cancellationToken)
 	{
@@ -36,7 +30,7 @@ public sealed class FeatureStatesController(
 			.ForContext("environmentId", environmentId);
 
 		log.Information("List feature states started");
-		var result = await _listHandler.HandleAsync(new ListFeatureStatesQuery { FeatureId = featureId, EnvironmentId = environmentId }, cancellationToken);
+		var result = await listHandler.HandleAsync(new ListFeatureStatesQuery { FeatureId = featureId, EnvironmentId = environmentId }, cancellationToken);
 
 		if (result.IsFailed)
 		{
@@ -62,7 +56,7 @@ public sealed class FeatureStatesController(
 
 		log.Information("Get feature state started");
 
-		var result = await _getByIdHandler.HandleAsync(new GetFeatureStateByIdQuery { Id = id }, cancellationToken);
+		var result = await getByIdHandler.HandleAsync(new GetFeatureStateByIdQuery { Id = id }, cancellationToken);
 
 		if (result.IsFailed)
 		{
@@ -84,7 +78,7 @@ public sealed class FeatureStatesController(
 
 		log.Information("Create feature state started");
 
-		var result = await _createHandler.HandleAsync(new CreateFeatureStateCommand
+		var result = await createHandler.HandleAsync(new CreateFeatureStateCommand
 		{
 			FeatureId = request.FeatureId,
 			EnvironmentId = request.EnvironmentId,
@@ -112,7 +106,7 @@ public sealed class FeatureStatesController(
 
 		log.Information("Update feature state started");
 
-		var result = await _updateHandler.HandleAsync(new UpdateFeatureStateCommand
+		var result = await updateHandler.HandleAsync(new UpdateFeatureStateCommand
 		{
 			Id = id,
 			FeatureId = request.FeatureId,
@@ -139,7 +133,7 @@ public sealed class FeatureStatesController(
 
 		log.Information("Delete feature state started");
 
-		var result = await _deleteHandler.HandleAsync(new DeleteFeatureStateCommand { Id = id }, cancellationToken);
+		var result = await deleteHandler.HandleAsync(new DeleteFeatureStateCommand { Id = id }, cancellationToken);
 
 		if (result.IsFailed)
 		{

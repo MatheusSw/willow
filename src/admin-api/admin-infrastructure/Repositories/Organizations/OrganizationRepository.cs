@@ -14,8 +14,6 @@ namespace admin_infrastructure.Repositories.Organizations;
 
 public sealed class OrganizationRepository(FeatureToggleDbContext dbContext) : IOrganizationRepository
 {
-	private readonly FeatureToggleDbContext _dbContext = dbContext;
-
 	public async Task<Result<Organization>> CreateAsync(Organization organization, CancellationToken cancellationToken)
 	{
 		var log = Log.ForContext<OrganizationRepository>()
@@ -26,8 +24,8 @@ public sealed class OrganizationRepository(FeatureToggleDbContext dbContext) : I
 		try
 		{
 			var entity = new Db.Entities.Organization { Id = organization.Id, Name = organization.Name };
-			_dbContext.Organizations.Add(entity);
-			await _dbContext.SaveChangesAsync(cancellationToken);
+			dbContext.Organizations.Add(entity);
+			await dbContext.SaveChangesAsync(cancellationToken);
 			log.Information("Organization Create completed");
 			return Result.Ok(organization);
 		}
@@ -45,7 +43,7 @@ public sealed class OrganizationRepository(FeatureToggleDbContext dbContext) : I
 
 		log.Information("Organization GetById started");
 
-		var entity = await _dbContext.Organizations.AsNoTracking().FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
+		var entity = await dbContext.Organizations.AsNoTracking().FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
 		if (entity == null)
 		{
 			log.Information("Organization not found");
@@ -64,7 +62,7 @@ public sealed class OrganizationRepository(FeatureToggleDbContext dbContext) : I
 
 		log.Information("Organization List started");
 
-		var query = _dbContext.Organizations.AsNoTracking().AsQueryable();
+		var query = dbContext.Organizations.AsNoTracking().AsQueryable();
 		if (!string.IsNullOrWhiteSpace(name))
 		{
 			query = query.Where(o => o.Name.Contains(name));
@@ -89,7 +87,7 @@ public sealed class OrganizationRepository(FeatureToggleDbContext dbContext) : I
 
 		try
 		{
-			var affected = await _dbContext.Organizations
+			var affected = await dbContext.Organizations
 				.Where(o => o.Id == organization.Id)
 				.ExecuteUpdateAsync(setters => setters
 					.SetProperty(o => o.Name, organization.Name), cancellationToken);
@@ -117,18 +115,18 @@ public sealed class OrganizationRepository(FeatureToggleDbContext dbContext) : I
 
 		log.Information("Organization Delete started");
 
-		var entity = await _dbContext.Organizations.FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
+		var entity = await dbContext.Organizations.FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
 		if (entity == null)
 		{
 			log.Information("Organization to delete not found");
 			return Result.Fail("NotFound");
 		}
 
-		_dbContext.Organizations.Remove(entity);
+		dbContext.Organizations.Remove(entity);
 
 		try
 		{
-			await _dbContext.SaveChangesAsync(cancellationToken);
+			await dbContext.SaveChangesAsync(cancellationToken);
 			log.Information("Organization Delete completed");
 			return Result.Ok();
 		}

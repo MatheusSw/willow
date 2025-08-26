@@ -14,9 +14,6 @@ namespace admin_infrastructure.Repositories.Security;
 
 public sealed class ApiKeyRepository(FeatureToggleDbContext dbContext, IDistributedCache cache) : IApiKeyRepository
 {
-	private readonly FeatureToggleDbContext _dbContext = dbContext;
-	private readonly IDistributedCache _cache = cache;
-
 	public async Task<bool> ValidateAsync(string apiKey, CancellationToken cancellationToken)
 	{
 		var log = Log.ForContext<ApiKeyRepository>();
@@ -24,21 +21,21 @@ public sealed class ApiKeyRepository(FeatureToggleDbContext dbContext, IDistribu
 
 		var hash = ComputeSha256Base64(apiKey);
 		var cacheKey = Utilities.CacheKeys.ApiKey(hash);
-		var cached = await _cache.GetStringAsync(cacheKey, cancellationToken);
+		var cached = await cache.GetStringAsync(cacheKey, cancellationToken);
 		if (cached == "1")
 		{
 			log.Information("API key cache hit");
 			return true;
 		}
 
-		var exists = await _dbContext.ApiKeys.AsNoTracking()
+		var exists = await dbContext.ApiKeys.AsNoTracking()
 			.AnyAsync(k => k.HashedKey == hash && k.Active, cancellationToken);
 
 		if (exists)
 		{
 			log.Information("API key valid, caching");
 
-			await _cache.SetStringAsync(cacheKey, "1", new DistributedCacheEntryOptions
+			await cache.SetStringAsync(cacheKey, "1", new DistributedCacheEntryOptions
 			{
 				AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
 			}, cancellationToken);

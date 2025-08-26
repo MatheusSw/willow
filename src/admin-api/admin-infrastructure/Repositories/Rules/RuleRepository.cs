@@ -14,8 +14,6 @@ namespace admin_infrastructure.Repositories.Rules;
 
 public sealed class RuleRepository(FeatureToggleDbContext dbContext) : IRuleRepository
 {
-	private readonly FeatureToggleDbContext _dbContext = dbContext;
-
 	public async Task<Result<Rule>> CreateAsync(Rule rule, CancellationToken cancellationToken)
 	{
 		var log = Log.ForContext<RuleRepository>()
@@ -41,8 +39,8 @@ public sealed class RuleRepository(FeatureToggleDbContext dbContext) : IRuleRepo
 				ConditionsJson = conditionsString
 			};
 
-			_dbContext.Rules.Add(entity);
-			await _dbContext.SaveChangesAsync(cancellationToken);
+			dbContext.Rules.Add(entity);
+			await dbContext.SaveChangesAsync(cancellationToken);
 
 			log.Information("Rule Create completed");
 			return Result.Ok(rule);
@@ -61,7 +59,7 @@ public sealed class RuleRepository(FeatureToggleDbContext dbContext) : IRuleRepo
 
 		log.Information("Rule GetById started");
 
-		var entity = await _dbContext.Rules.AsNoTracking().FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+		var entity = await dbContext.Rules.AsNoTracking().FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
 		if (entity == null)
 		{
 			log.Information("Rule not found");
@@ -90,7 +88,7 @@ public sealed class RuleRepository(FeatureToggleDbContext dbContext) : IRuleRepo
 
 		log.Information("Rule List started");
 
-		var query = _dbContext.Rules.AsNoTracking().AsQueryable();
+		var query = dbContext.Rules.AsNoTracking().AsQueryable();
 		if (featureId.HasValue)
 		{
 			query = query.Where(r => r.FeatureId == featureId.Value);
@@ -136,7 +134,7 @@ public sealed class RuleRepository(FeatureToggleDbContext dbContext) : IRuleRepo
 			var matchTypeString = rule.MatchType.ToString().ToLowerInvariant();
 			var conditionsString = System.Text.Json.JsonSerializer.Serialize(rule.Conditions);
 
-			var affected = await _dbContext.Rules
+			var affected = await dbContext.Rules
 				.Where(r => r.Id == rule.Id)
 				.ExecuteUpdateAsync(setters => setters
 					.SetProperty(r => r.FeatureId, rule.FeatureId)
@@ -168,18 +166,18 @@ public sealed class RuleRepository(FeatureToggleDbContext dbContext) : IRuleRepo
 
 		log.Information("Rule Delete started");
 
-		var entity = await _dbContext.Rules.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+		var entity = await dbContext.Rules.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
 		if (entity == null)
 		{
 			log.Information("Rule to delete not found");
 			return Result.Fail("NotFound");
 		}
 
-		_dbContext.Rules.Remove(entity);
+		dbContext.Rules.Remove(entity);
 
 		try
 		{
-			await _dbContext.SaveChangesAsync(cancellationToken);
+			await dbContext.SaveChangesAsync(cancellationToken);
 			log.Information("Rule Delete completed");
 			return Result.Ok();
 		}

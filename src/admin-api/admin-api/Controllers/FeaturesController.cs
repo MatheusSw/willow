@@ -22,12 +22,6 @@ public sealed class FeaturesController(
 	IGetFeatureByIdQueryHandler getByIdHandler,
 	IListFeaturesQueryHandler listHandler) : ControllerBase
 {
-	private readonly ICreateFeatureCommandHandler _createHandler = createHandler;
-	private readonly IUpdateFeatureCommandHandler _updateHandler = updateHandler;
-	private readonly IDeleteFeatureCommandHandler _deleteHandler = deleteHandler;
-	private readonly IGetFeatureByIdQueryHandler _getByIdHandler = getByIdHandler;
-	private readonly IListFeaturesQueryHandler _listHandler = listHandler;
-
 	[HttpGet]
 	public async Task<ActionResult<List<FeatureResponse>>> List([FromQuery] Guid? projectId, CancellationToken cancellationToken)
 	{
@@ -35,7 +29,7 @@ public sealed class FeaturesController(
 			.ForContext("projectId", projectId);
 
 		log.Information("List features started");
-		var result = await _listHandler.HandleAsync(new ListFeaturesQuery { ProjectId = projectId }, cancellationToken);
+		var result = await listHandler.HandleAsync(new ListFeaturesQuery { ProjectId = projectId }, cancellationToken);
 
 		if (result.IsFailed)
 		{
@@ -61,7 +55,7 @@ public sealed class FeaturesController(
 
 		log.Information("Get feature started");
 
-		var result = await _getByIdHandler.HandleAsync(new GetFeatureByIdQuery { Id = id }, cancellationToken);
+		var result = await getByIdHandler.HandleAsync(new GetFeatureByIdQuery { Id = id }, cancellationToken);
 
 		if (result.IsFailed)
 		{
@@ -82,7 +76,7 @@ public sealed class FeaturesController(
 
 		log.Information("Create feature started");
 
-		var result = await _createHandler.HandleAsync(new CreateFeatureCommand
+		var result = await createHandler.HandleAsync(new CreateFeatureCommand
 		{
 			ProjectId = request.ProjectId,
 			Name = request.Name,
@@ -108,7 +102,7 @@ public sealed class FeaturesController(
 
 		log.Information("Update feature started");
 
-		var result = await _updateHandler.HandleAsync(new UpdateFeatureCommand
+		var result = await updateHandler.HandleAsync(new UpdateFeatureCommand
 		{
 			Id = id,
 			ProjectId = request.ProjectId,
@@ -129,7 +123,7 @@ public sealed class FeaturesController(
 
 		log.Information("Delete feature started");
 
-		var result = await _deleteHandler.HandleAsync(new DeleteFeatureCommand { Id = id }, cancellationToken);
+		var result = await deleteHandler.HandleAsync(new DeleteFeatureCommand { Id = id }, cancellationToken);
 
 		if (result.IsFailed)
 		{

@@ -26,12 +26,6 @@ public sealed class ProjectsController(
 	IGetProjectByIdQueryHandler getByIdHandler,
 	IListProjectsQueryHandler listHandler) : ControllerBase
 {
-	private readonly ICreateProjectCommandHandler _createHandler = createHandler;
-	private readonly IUpdateProjectCommandHandler _updateHandler = updateHandler;
-	private readonly IDeleteProjectCommandHandler _deleteHandler = deleteHandler;
-	private readonly IGetProjectByIdQueryHandler _getByIdHandler = getByIdHandler;
-	private readonly IListProjectsQueryHandler _listHandler = listHandler;
-
 	[HttpGet]
 	public async Task<ActionResult<List<ProjectResponse>>> List([FromQuery] Guid? orgId, CancellationToken cancellationToken)
 	{
@@ -39,7 +33,7 @@ public sealed class ProjectsController(
 			.ForContext("orgId", orgId);
 
 		log.Information("List projects started");
-		var result = await _listHandler.HandleAsync(new ListProjectsQuery { OrgId = orgId }, cancellationToken);
+		var result = await listHandler.HandleAsync(new ListProjectsQuery { OrgId = orgId }, cancellationToken);
 
 		if (result.IsFailed)
 		{
@@ -65,7 +59,7 @@ public sealed class ProjectsController(
 
 		log.Information("Get project started");
 
-		var result = await _getByIdHandler.HandleAsync(new GetProjectByIdQuery { Id = id }, cancellationToken);
+		var result = await getByIdHandler.HandleAsync(new GetProjectByIdQuery { Id = id }, cancellationToken);
 
 		if (result.IsFailed)
 		{
@@ -86,7 +80,7 @@ public sealed class ProjectsController(
 
 		log.Information("Create project started");
 
-		var result = await _createHandler.HandleAsync(new CreateProjectCommand
+		var result = await createHandler.HandleAsync(new CreateProjectCommand
 		{
 			OrgId = request.OrgId,
 			Name = request.Name
@@ -111,7 +105,7 @@ public sealed class ProjectsController(
 
 		log.Information("Update project started");
 
-		var result = await _updateHandler.HandleAsync(new UpdateProjectCommand
+		var result = await updateHandler.HandleAsync(new UpdateProjectCommand
 		{
 			Id = id,
 			OrgId = request.OrgId,
@@ -136,7 +130,7 @@ public sealed class ProjectsController(
 
 		log.Information("Delete project started");
 
-		var result = await _deleteHandler.HandleAsync(new DeleteProjectCommand { Id = id }, cancellationToken);
+		var result = await deleteHandler.HandleAsync(new DeleteProjectCommand { Id = id }, cancellationToken);
 
 		if (result.IsFailed)
 		{

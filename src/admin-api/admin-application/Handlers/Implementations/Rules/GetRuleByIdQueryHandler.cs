@@ -12,14 +12,12 @@ namespace admin_application.Handlers.Implementations.Rules;
 
 public sealed class GetRuleByIdQueryHandler(IRuleRepository repository) : IGetRuleByIdQueryHandler
 {
-	private readonly IRuleRepository _repository = repository;
-
 	public async Task<Result<Rule>> HandleAsync(GetRuleByIdQuery query, CancellationToken cancellationToken)
 	{
 		var log = Log.ForContext<GetRuleByIdQueryHandler>()
 			.ForContext("Id", query.Id);
 		log.Information("GetRuleById started");
-		var result = await _repository.GetByIdAsync(query.Id, cancellationToken);
+		var result = await repository.GetByIdAsync(query.Id, cancellationToken);
 		log.Information("GetRuleById completed: {Success}", result.IsSuccess);
 		return result;
 	}

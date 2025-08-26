@@ -17,8 +17,6 @@ public sealed class ApiKeyAuthenticationHandler(
 	UrlEncoder encoder,
 	IValidateApiKeyQueryHandler validateHandler) : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
 {
-	private readonly IValidateApiKeyQueryHandler _validateHandler = validateHandler;
-
 	public const string SchemeName = "ApiKey";
 	public const string HeaderName = "x-api-key";
 
@@ -31,7 +29,7 @@ public sealed class ApiKeyAuthenticationHandler(
 			return AuthenticateResult.Fail("Missing API key header");
 		}
 
-		var valid = await _validateHandler.HandleAsync(new ValidateApiKeyQuery { ApiKey = apiKey! }, CancellationToken.None);
+		var valid = await validateHandler.HandleAsync(new ValidateApiKeyQuery { ApiKey = apiKey! }, CancellationToken.None);
 		if (!valid)
 		{
 			Log.ForContext<ApiKeyAuthenticationHandler>().Warning("API key invalid");

@@ -12,8 +12,6 @@ namespace admin_application.Handlers.Implementations.Features;
 
 public sealed class UpdateFeatureCommandHandler(IFeatureRepository repository) : IUpdateFeatureCommandHandler
 {
-	private readonly IFeatureRepository _repository = repository;
-
 	public async Task<Result<Feature>> HandleAsync(UpdateFeatureCommand command, CancellationToken cancellationToken)
 	{
 		var log = Log.ForContext<UpdateFeatureCommandHandler>()
@@ -24,7 +22,7 @@ public sealed class UpdateFeatureCommandHandler(IFeatureRepository repository) :
 
 		var model = new Feature { Id = command.Id, ProjectId = command.ProjectId, Name = command.Name, Description = command.Description };
 
-		var result = await _repository.UpdateAsync(model, cancellationToken);
+		var result = await repository.UpdateAsync(model, cancellationToken);
 
 		log.Information("UpdateFeature completed: {Success}", result.IsSuccess);
 

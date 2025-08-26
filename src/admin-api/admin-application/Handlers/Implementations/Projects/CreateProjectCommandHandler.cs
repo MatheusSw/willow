@@ -13,8 +13,6 @@ namespace admin_application.Handlers.Implementations.Projects;
 
 public sealed class CreateProjectCommandHandler(IProjectRepository repository) : ICreateProjectCommandHandler
 {
-	private readonly IProjectRepository _repository = repository;
-
 	public async Task<Result<Project>> HandleAsync(CreateProjectCommand command, CancellationToken cancellationToken)
 	{
 		var log = Log.ForContext<CreateProjectCommandHandler>()
@@ -24,7 +22,7 @@ public sealed class CreateProjectCommandHandler(IProjectRepository repository) :
 
 		var model = new Project { Id = Guid.NewGuid(), OrgId = command.OrgId, Name = command.Name };
 
-		var result = await _repository.CreateAsync(model, cancellationToken);
+		var result = await repository.CreateAsync(model, cancellationToken);
 
 		log.Information("CreateProject completed: {Success}", result.IsSuccess);
 

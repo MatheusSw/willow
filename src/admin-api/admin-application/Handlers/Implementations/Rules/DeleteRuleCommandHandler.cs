@@ -10,8 +10,6 @@ namespace admin_application.Handlers.Implementations.Rules;
 
 public sealed class DeleteRuleCommandHandler(IRuleRepository repository) : IDeleteRuleCommandHandler
 {
-	private readonly IRuleRepository _repository = repository;
-
 	public async Task<Result> HandleAsync(DeleteRuleCommand command, CancellationToken cancellationToken)
 	{
 		var log = Log.ForContext<DeleteRuleCommandHandler>()
@@ -19,7 +17,7 @@ public sealed class DeleteRuleCommandHandler(IRuleRepository repository) : IDele
 
 		log.Information("DeleteRule started");
 
-		var result = await _repository.DeleteAsync(command.Id, cancellationToken);
+		var result = await repository.DeleteAsync(command.Id, cancellationToken);
 
 		log.Information("DeleteRule completed: {Success}", result.IsSuccess);
 

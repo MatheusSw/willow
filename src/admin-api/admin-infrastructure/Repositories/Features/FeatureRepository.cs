@@ -14,8 +14,6 @@ namespace admin_infrastructure.Repositories.Features;
 
 public sealed class FeatureRepository(FeatureToggleDbContext dbContext) : IFeatureRepository
 {
-	private readonly FeatureToggleDbContext _dbContext = dbContext;
-
 	public async Task<Result<Feature>> CreateAsync(Feature feature, CancellationToken cancellationToken)
 	{
 		var log = Log.ForContext<FeatureRepository>()
@@ -27,8 +25,8 @@ public sealed class FeatureRepository(FeatureToggleDbContext dbContext) : IFeatu
 		try
 		{
 			var entity = new Db.Entities.Feature { Id = feature.Id, ProjectId = feature.ProjectId, Name = feature.Name, Description = feature.Description };
-			_dbContext.Features.Add(entity);
-			await _dbContext.SaveChangesAsync(cancellationToken);
+			dbContext.Features.Add(entity);
+			await dbContext.SaveChangesAsync(cancellationToken);
 			log.Information("Feature Create completed");
 			return Result.Ok(feature);
 		}
@@ -46,7 +44,7 @@ public sealed class FeatureRepository(FeatureToggleDbContext dbContext) : IFeatu
 
 		log.Information("Feature GetById started");
 
-		var entity = await _dbContext.Features.AsNoTracking().FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
+		var entity = await dbContext.Features.AsNoTracking().FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
 		if (entity == null)
 		{
 			log.Information("Feature not found");
@@ -65,7 +63,7 @@ public sealed class FeatureRepository(FeatureToggleDbContext dbContext) : IFeatu
 
 		log.Information("Feature List started");
 
-		var query = _dbContext.Features.AsNoTracking().AsQueryable();
+		var query = dbContext.Features.AsNoTracking().AsQueryable();
 		if (projectId.HasValue)
 		{
 			query = query.Where(f => f.ProjectId == projectId.Value);
@@ -91,7 +89,7 @@ public sealed class FeatureRepository(FeatureToggleDbContext dbContext) : IFeatu
 
 		try
 		{
-			var affected = await _dbContext.Features
+			var affected = await dbContext.Features
 				.Where(f => f.Id == feature.Id)
 				.ExecuteUpdateAsync(setters => setters
 					.SetProperty(f => f.ProjectId, feature.ProjectId)
@@ -121,18 +119,18 @@ public sealed class FeatureRepository(FeatureToggleDbContext dbContext) : IFeatu
 
 		log.Information("Feature Delete started");
 
-		var entity = await _dbContext.Features.FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
+		var entity = await dbContext.Features.FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
 		if (entity == null)
 		{
 			log.Information("Feature to delete not found");
 			return Result.Fail("NotFound");
 		}
 
-		_dbContext.Features.Remove(entity);
+		dbContext.Features.Remove(entity);
 
 		try
 		{
-			await _dbContext.SaveChangesAsync(cancellationToken);
+			await dbContext.SaveChangesAsync(cancellationToken);
 			log.Information("Feature Delete completed");
 			return Result.Ok();
 		}

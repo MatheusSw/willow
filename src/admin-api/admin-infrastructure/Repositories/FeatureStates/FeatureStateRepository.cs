@@ -14,8 +14,6 @@ namespace admin_infrastructure.Repositories.FeatureStates;
 
 public sealed class FeatureStateRepository(FeatureToggleDbContext dbContext) : IFeatureStateRepository
 {
-	private readonly FeatureToggleDbContext _dbContext = dbContext;
-
 	public async Task<Result<FeatureState>> CreateAsync(FeatureState featureState, CancellationToken cancellationToken)
 	{
 		var log = Log.ForContext<FeatureStateRepository>()
@@ -28,8 +26,8 @@ public sealed class FeatureStateRepository(FeatureToggleDbContext dbContext) : I
 		try
 		{
 			var entity = new Db.Entities.FeatureState { Id = featureState.Id, FeatureId = featureState.FeatureId, EnvironmentId = featureState.EnvironmentId, Enabled = featureState.Enabled, Reason = featureState.Reason };
-			_dbContext.FeatureStates.Add(entity);
-			await _dbContext.SaveChangesAsync(cancellationToken);
+			dbContext.FeatureStates.Add(entity);
+			await dbContext.SaveChangesAsync(cancellationToken);
 			log.Information("FeatureState Create completed");
 			return Result.Ok(featureState);
 		}
@@ -47,7 +45,7 @@ public sealed class FeatureStateRepository(FeatureToggleDbContext dbContext) : I
 
 		log.Information("FeatureState GetById started");
 
-		var entity = await _dbContext.FeatureStates.AsNoTracking().FirstOrDefaultAsync(fs => fs.Id == id, cancellationToken);
+		var entity = await dbContext.FeatureStates.AsNoTracking().FirstOrDefaultAsync(fs => fs.Id == id, cancellationToken);
 		if (entity == null)
 		{
 			log.Information("FeatureState not found");
@@ -67,7 +65,7 @@ public sealed class FeatureStateRepository(FeatureToggleDbContext dbContext) : I
 
 		log.Information("FeatureState List started");
 
-		var query = _dbContext.FeatureStates.AsNoTracking().AsQueryable();
+		var query = dbContext.FeatureStates.AsNoTracking().AsQueryable();
 		if (featureId.HasValue)
 		{
 			query = query.Where(fs => fs.FeatureId == featureId.Value);
@@ -99,7 +97,7 @@ public sealed class FeatureStateRepository(FeatureToggleDbContext dbContext) : I
 
 		try
 		{
-			var affected = await _dbContext.FeatureStates
+			var affected = await dbContext.FeatureStates
 				.Where(fs => fs.Id == featureState.Id)
 				.ExecuteUpdateAsync(setters => setters
 					.SetProperty(fs => fs.FeatureId, featureState.FeatureId)
@@ -130,18 +128,18 @@ public sealed class FeatureStateRepository(FeatureToggleDbContext dbContext) : I
 
 		log.Information("FeatureState Delete started");
 
-		var entity = await _dbContext.FeatureStates.FirstOrDefaultAsync(fs => fs.Id == id, cancellationToken);
+		var entity = await dbContext.FeatureStates.FirstOrDefaultAsync(fs => fs.Id == id, cancellationToken);
 		if (entity == null)
 		{
 			log.Information("FeatureState to delete not found");
 			return Result.Fail("NotFound");
 		}
 
-		_dbContext.FeatureStates.Remove(entity);
+		dbContext.FeatureStates.Remove(entity);
 
 		try
 		{
-			await _dbContext.SaveChangesAsync(cancellationToken);
+			await dbContext.SaveChangesAsync(cancellationToken);
 			log.Information("FeatureState Delete completed");
 			return Result.Ok();
 		}

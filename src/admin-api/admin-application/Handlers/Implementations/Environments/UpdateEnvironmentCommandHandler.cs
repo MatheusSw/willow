@@ -12,8 +12,6 @@ namespace admin_application.Handlers.Implementations.Environments;
 
 public sealed class UpdateEnvironmentCommandHandler(IEnvironmentRepository repository) : IUpdateEnvironmentCommandHandler
 {
-	private readonly IEnvironmentRepository _repository = repository;
-
 	public async Task<Result<admin_domain.Entities.Environment>> HandleAsync(UpdateEnvironmentCommand command, CancellationToken cancellationToken)
 	{
 		var log = Log.ForContext<UpdateEnvironmentCommandHandler>()
@@ -24,7 +22,7 @@ public sealed class UpdateEnvironmentCommandHandler(IEnvironmentRepository repos
 
 		var model = new admin_domain.Entities.Environment { Id = command.Id, ProjectId = command.ProjectId, Key = command.Key };
 
-		var result = await _repository.UpdateAsync(model, cancellationToken);
+		var result = await repository.UpdateAsync(model, cancellationToken);
 
 		log.Information("UpdateEnvironment completed: {Success}", result.IsSuccess);
 

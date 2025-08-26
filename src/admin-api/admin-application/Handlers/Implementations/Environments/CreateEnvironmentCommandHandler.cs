@@ -12,8 +12,6 @@ namespace admin_application.Handlers.Implementations.Environments;
 
 public sealed class CreateEnvironmentCommandHandler(IEnvironmentRepository repository) : ICreateEnvironmentCommandHandler
 {
-	private readonly IEnvironmentRepository _repository = repository;
-
 	public async Task<Result<admin_domain.Entities.Environment>> HandleAsync(CreateEnvironmentCommand command, CancellationToken cancellationToken)
 	{
 		var log = Log.ForContext<CreateEnvironmentCommandHandler>()
@@ -23,7 +21,7 @@ public sealed class CreateEnvironmentCommandHandler(IEnvironmentRepository repos
 
 		var model = new admin_domain.Entities.Environment { Id = Guid.NewGuid(), ProjectId = command.ProjectId, Key = command.Key };
 
-		var result = await _repository.CreateAsync(model, cancellationToken);
+		var result = await repository.CreateAsync(model, cancellationToken);
 
 		log.Information("CreateEnvironment completed: {Success}", result.IsSuccess);
 

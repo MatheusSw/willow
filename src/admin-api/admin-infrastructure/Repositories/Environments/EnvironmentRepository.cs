@@ -14,8 +14,6 @@ namespace admin_infrastructure.Repositories.Environments;
 
 public sealed class EnvironmentRepository(FeatureToggleDbContext dbContext) : IEnvironmentRepository
 {
-	private readonly FeatureToggleDbContext _dbContext = dbContext;
-
 	public async Task<Result<Environment>> CreateAsync(Environment environment, CancellationToken cancellationToken)
 	{
 		var log = Log.ForContext<EnvironmentRepository>()
@@ -27,8 +25,8 @@ public sealed class EnvironmentRepository(FeatureToggleDbContext dbContext) : IE
 		try
 		{
 			var entity = new Db.Entities.EnvironmentEntity { Id = environment.Id, ProjectId = environment.ProjectId, Key = environment.Key };
-			_dbContext.Environments.Add(entity);
-			await _dbContext.SaveChangesAsync(cancellationToken);
+			dbContext.Environments.Add(entity);
+			await dbContext.SaveChangesAsync(cancellationToken);
 			log.Information("Environment Create completed");
 			return Result.Ok(environment);
 		}
@@ -46,7 +44,7 @@ public sealed class EnvironmentRepository(FeatureToggleDbContext dbContext) : IE
 
 		log.Information("Environment GetById started");
 
-		var entity = await _dbContext.Environments.AsNoTracking().FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
+		var entity = await dbContext.Environments.AsNoTracking().FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
 		if (entity == null)
 		{
 			log.Information("Environment not found");
@@ -65,7 +63,7 @@ public sealed class EnvironmentRepository(FeatureToggleDbContext dbContext) : IE
 
 		log.Information("Environment List started");
 
-		var query = _dbContext.Environments.AsNoTracking().AsQueryable();
+		var query = dbContext.Environments.AsNoTracking().AsQueryable();
 		if (projectId.HasValue)
 		{
 			query = query.Where(e => e.ProjectId == projectId.Value);
@@ -91,7 +89,7 @@ public sealed class EnvironmentRepository(FeatureToggleDbContext dbContext) : IE
 
 		try
 		{
-			var affected = await _dbContext.Environments
+			var affected = await dbContext.Environments
 				.Where(e => e.Id == environment.Id)
 				.ExecuteUpdateAsync(setters => setters
 					.SetProperty(e => e.ProjectId, environment.ProjectId)
@@ -120,18 +118,18 @@ public sealed class EnvironmentRepository(FeatureToggleDbContext dbContext) : IE
 
 		log.Information("Environment Delete started");
 
-		var entity = await _dbContext.Environments.FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
+		var entity = await dbContext.Environments.FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
 		if (entity == null)
 		{
 			log.Information("Environment to delete not found");
 			return Result.Fail("NotFound");
 		}
 
-		_dbContext.Environments.Remove(entity);
+		dbContext.Environments.Remove(entity);
 
 		try
 		{
-			await _dbContext.SaveChangesAsync(cancellationToken);
+			await dbContext.SaveChangesAsync(cancellationToken);
 			log.Information("Environment Delete completed");
 			return Result.Ok();
 		}
