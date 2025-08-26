@@ -12,15 +12,13 @@ namespace admin_application.Handlers.Implementations.Features;
 
 public sealed class GetFeatureByIdQueryHandler(IFeatureRepository repository) : IGetFeatureByIdQueryHandler
 {
-	private readonly IFeatureRepository _repository = repository;
-
 	public async Task<Result<Feature>> HandleAsync(GetFeatureByIdQuery query, CancellationToken cancellationToken)
 	{
 		var log = Log.ForContext<GetFeatureByIdQueryHandler>()
 			.ForContext("Id", query.Id);
 		log.Information("GetFeatureById started");
 
-		var result = await _repository.GetByIdAsync(query.Id, cancellationToken);
+		var result = await repository.GetByIdAsync(query.Id, cancellationToken);
 
 		log.Information("GetFeatureById completed: {Success}", result.IsSuccess);
 

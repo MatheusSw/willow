@@ -23,12 +23,6 @@ public sealed class RulesController(
 	IGetRuleByIdQueryHandler getByIdHandler,
 	IListRulesQueryHandler listHandler) : ControllerBase
 {
-	private readonly ICreateRuleCommandHandler _createHandler = createHandler;
-	private readonly IUpdateRuleCommandHandler _updateHandler = updateHandler;
-	private readonly IDeleteRuleCommandHandler _deleteHandler = deleteHandler;
-	private readonly IGetRuleByIdQueryHandler _getByIdHandler = getByIdHandler;
-	private readonly IListRulesQueryHandler _listHandler = listHandler;
-
 	[HttpGet]
 	public async Task<ActionResult<List<RuleResponse>>> List([FromQuery] Guid? featureId, [FromQuery] Guid? environmentId, CancellationToken cancellationToken)
 	{
@@ -37,7 +31,7 @@ public sealed class RulesController(
 			.ForContext("environmentId", environmentId);
 
 		log.Information("List rules started");
-		var result = await _listHandler.HandleAsync(new ListRulesQuery { FeatureId = featureId, EnvironmentId = environmentId }, cancellationToken);
+		var result = await listHandler.HandleAsync(new ListRulesQuery { FeatureId = featureId, EnvironmentId = environmentId }, cancellationToken);
 
 		if (result.IsFailed)
 		{
@@ -63,7 +57,7 @@ public sealed class RulesController(
 
 		log.Information("Get rule started");
 
-		var result = await _getByIdHandler.HandleAsync(new GetRuleByIdQuery { Id = id }, cancellationToken);
+		var result = await getByIdHandler.HandleAsync(new GetRuleByIdQuery { Id = id }, cancellationToken);
 
 		if (result.IsFailed)
 		{
@@ -86,7 +80,7 @@ public sealed class RulesController(
 
 		log.Information("Create rule started");
 
-		var result = await _createHandler.HandleAsync(new CreateRuleCommand
+		var result = await createHandler.HandleAsync(new CreateRuleCommand
 		{
 			FeatureId = request.FeatureId,
 			EnvironmentId = request.EnvironmentId,
@@ -121,7 +115,7 @@ public sealed class RulesController(
 
 		log.Information("Update rule started");
 
-		var result = await _updateHandler.HandleAsync(new UpdateRuleCommand
+		var result = await updateHandler.HandleAsync(new UpdateRuleCommand
 		{
 			Id = id,
 			FeatureId = request.FeatureId,
@@ -154,7 +148,7 @@ public sealed class RulesController(
 
 		log.Information("Delete rule started");
 
-		var result = await _deleteHandler.HandleAsync(new DeleteRuleCommand { Id = id }, cancellationToken);
+		var result = await deleteHandler.HandleAsync(new DeleteRuleCommand { Id = id }, cancellationToken);
 
 		if (result.IsFailed)
 		{

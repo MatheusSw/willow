@@ -17,8 +17,6 @@ namespace admin_infrastructure.Repositories.Projects;
 
 public sealed class ProjectRepository(FeatureToggleDbContext dbContext) : IProjectRepository
 {
-	private readonly FeatureToggleDbContext _dbContext = dbContext;
-
 	public async Task<Result<Project>> CreateAsync(Project project, CancellationToken cancellationToken)
 	{
 		var log = Log.ForContext<ProjectRepository>()
@@ -31,9 +29,9 @@ public sealed class ProjectRepository(FeatureToggleDbContext dbContext) : IProje
 		{
 			var entity = new Db.Entities.Project { Id = project.Id, OrgId = project.OrgId, Name = project.Name };
 
-			_dbContext.Projects.Add(entity);
+			dbContext.Projects.Add(entity);
 
-			await _dbContext.SaveChangesAsync(cancellationToken);
+			await dbContext.SaveChangesAsync(cancellationToken);
 
 			log.Information("Project Create completed");
 
@@ -54,7 +52,7 @@ public sealed class ProjectRepository(FeatureToggleDbContext dbContext) : IProje
 
 		log.Information("Project GetById started");
 
-		var entity = await _dbContext.Projects.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+		var entity = await dbContext.Projects.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 		if (entity == null)
 		{
 			log.Information("Project not found");
@@ -76,7 +74,7 @@ public sealed class ProjectRepository(FeatureToggleDbContext dbContext) : IProje
 
 		log.Information("Project List started");
 
-		var query = _dbContext.Projects.AsNoTracking().AsQueryable();
+		var query = dbContext.Projects.AsNoTracking().AsQueryable();
 		if (orgId.HasValue)
 		{
 			query = query.Where(projectEntity => projectEntity.OrgId == orgId.Value);
@@ -104,7 +102,7 @@ public sealed class ProjectRepository(FeatureToggleDbContext dbContext) : IProje
 
 		try
 		{
-			var affected = await _dbContext.Projects
+			var affected = await dbContext.Projects
 				.Where(projectEntity => projectEntity.Id == project.Id)
 				.ExecuteUpdateAsync(projectSetters => projectSetters
 					.SetProperty(projectEntity => projectEntity.OrgId, project.OrgId)
@@ -136,7 +134,7 @@ public sealed class ProjectRepository(FeatureToggleDbContext dbContext) : IProje
 
 		log.Information("Project Delete started");
 
-		var entity = await _dbContext.Projects.FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+		var entity = await dbContext.Projects.FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 		if (entity == null)
 		{
 			log.Information("Project to delete not found");
@@ -144,11 +142,11 @@ public sealed class ProjectRepository(FeatureToggleDbContext dbContext) : IProje
 			return Result.Fail("NotFound");
 		}
 
-		_dbContext.Projects.Remove(entity);
+		dbContext.Projects.Remove(entity);
 
 		try
 		{
-			await _dbContext.SaveChangesAsync(cancellationToken);
+			await dbContext.SaveChangesAsync(cancellationToken);
 
 			log.Information("Project Delete completed");
 

@@ -13,8 +13,6 @@ namespace admin_application.Handlers.Implementations.Rules;
 
 public sealed class UpdateRuleCommandHandler(IRuleRepository repository) : IUpdateRuleCommandHandler
 {
-	private readonly IRuleRepository _repository = repository;
-
 	public async Task<Result<Rule>> HandleAsync(UpdateRuleCommand command, CancellationToken cancellationToken)
 	{
 		var log = Log.ForContext<UpdateRuleCommandHandler>()
@@ -36,7 +34,7 @@ public sealed class UpdateRuleCommandHandler(IRuleRepository repository) : IUpda
 			Conditions = command.Conditions
 		};
 
-		var result = await _repository.UpdateAsync(model, cancellationToken);
+		var result = await repository.UpdateAsync(model, cancellationToken);
 
 		log.Information("UpdateRule completed: {Success}", result.IsSuccess);
 

@@ -12,15 +12,13 @@ namespace admin_application.Handlers.Implementations.Organizations;
 
 public sealed class ListOrganizationsQueryHandler(IOrganizationRepository repository) : IListOrganizationsQueryHandler
 {
-	private readonly IOrganizationRepository _repository = repository;
-
 	public async Task<Result<List<Organization>>> HandleAsync(ListOrganizationsQuery query, CancellationToken cancellationToken)
 	{
 		var log = Log.ForContext<ListOrganizationsQueryHandler>()
 			.ForContext("Name", query.Name);
 		log.Information("ListOrganizations started");
 
-		var result = await _repository.ListAsync(query.Name, cancellationToken);
+		var result = await repository.ListAsync(query.Name, cancellationToken);
 
 		log.Information("ListOrganizations completed: {Success} Count={Count}", result.IsSuccess, result.ValueOrDefault?.Count ?? 0);
 

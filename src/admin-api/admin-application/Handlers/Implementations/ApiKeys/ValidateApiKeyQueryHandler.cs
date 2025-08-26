@@ -8,8 +8,6 @@ namespace admin_application.Handlers.Implementations.ApiKeys;
 
 public sealed class ValidateApiKeyQueryHandler(IApiKeyRepository apiKeyRepository) : IValidateApiKeyQueryHandler
 {
-	private readonly IApiKeyRepository _apiKeyRepository = apiKeyRepository;
-
 	public async Task<bool> HandleAsync(ValidateApiKeyQuery query, CancellationToken cancellationToken)
 	{
 		var log = Log.ForContext<ValidateApiKeyQueryHandler>()
@@ -24,7 +22,7 @@ public sealed class ValidateApiKeyQueryHandler(IApiKeyRepository apiKeyRepositor
 			return false;
 		}
 
-		var valid = await _apiKeyRepository.ValidateAsync(query.ApiKey, cancellationToken);
+		var valid = await apiKeyRepository.ValidateAsync(query.ApiKey, cancellationToken);
 
 		log.Information("ValidateApiKey completed: {Valid}", valid);
 

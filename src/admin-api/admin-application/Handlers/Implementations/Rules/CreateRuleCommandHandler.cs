@@ -13,8 +13,6 @@ namespace admin_application.Handlers.Implementations.Rules;
 
 public sealed class CreateRuleCommandHandler(IRuleRepository repository) : ICreateRuleCommandHandler
 {
-	private readonly IRuleRepository _repository = repository;
-
 	public async Task<Result<Rule>> HandleAsync(CreateRuleCommand command, CancellationToken cancellationToken)
 	{
 		var log = Log.ForContext<CreateRuleCommandHandler>()
@@ -35,7 +33,7 @@ public sealed class CreateRuleCommandHandler(IRuleRepository repository) : ICrea
 			Conditions = command.Conditions
 		};
 
-		var result = await _repository.CreateAsync(model, cancellationToken);
+		var result = await repository.CreateAsync(model, cancellationToken);
 
 		log.Information("CreateRule completed: {Success}", result.IsSuccess);
 

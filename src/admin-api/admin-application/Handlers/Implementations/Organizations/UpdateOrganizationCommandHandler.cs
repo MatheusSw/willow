@@ -12,8 +12,6 @@ namespace admin_application.Handlers.Implementations.Organizations;
 
 public sealed class UpdateOrganizationCommandHandler(IOrganizationRepository repository) : IUpdateOrganizationCommandHandler
 {
-	private readonly IOrganizationRepository _repository = repository;
-
 	public async Task<Result<Organization>> HandleAsync(UpdateOrganizationCommand command, CancellationToken cancellationToken)
 	{
 		var log = Log.ForContext<UpdateOrganizationCommandHandler>()
@@ -24,7 +22,7 @@ public sealed class UpdateOrganizationCommandHandler(IOrganizationRepository rep
 
 		var model = new Organization { Id = command.Id, Name = command.Name };
 
-		var result = await _repository.UpdateAsync(model, cancellationToken);
+		var result = await repository.UpdateAsync(model, cancellationToken);
 
 		log.Information("UpdateOrganization completed: {Success}", result.IsSuccess);
 

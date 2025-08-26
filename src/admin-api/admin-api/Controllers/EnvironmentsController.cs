@@ -22,12 +22,6 @@ public sealed class EnvironmentsController(
 	IGetEnvironmentByIdQueryHandler getByIdHandler,
 	IListEnvironmentsQueryHandler listHandler) : ControllerBase
 {
-	private readonly ICreateEnvironmentCommandHandler _createHandler = createHandler;
-	private readonly IUpdateEnvironmentCommandHandler _updateHandler = updateHandler;
-	private readonly IDeleteEnvironmentCommandHandler _deleteHandler = deleteHandler;
-	private readonly IGetEnvironmentByIdQueryHandler _getByIdHandler = getByIdHandler;
-	private readonly IListEnvironmentsQueryHandler _listHandler = listHandler;
-
 	[HttpGet]
 	public async Task<ActionResult<List<EnvironmentResponse>>> List([FromQuery] Guid? projectId, CancellationToken cancellationToken)
 	{
@@ -35,7 +29,7 @@ public sealed class EnvironmentsController(
 			.ForContext("projectId", projectId);
 
 		log.Information("List environments started");
-		var result = await _listHandler.HandleAsync(new ListEnvironmentsQuery { ProjectId = projectId }, cancellationToken);
+		var result = await listHandler.HandleAsync(new ListEnvironmentsQuery { ProjectId = projectId }, cancellationToken);
 
 		if (result.IsFailed)
 		{
@@ -61,7 +55,7 @@ public sealed class EnvironmentsController(
 
 		log.Information("Get environment started");
 
-		var result = await _getByIdHandler.HandleAsync(new GetEnvironmentByIdQuery { Id = id }, cancellationToken);
+		var result = await getByIdHandler.HandleAsync(new GetEnvironmentByIdQuery { Id = id }, cancellationToken);
 
 		if (result.IsFailed)
 		{
@@ -82,7 +76,7 @@ public sealed class EnvironmentsController(
 
 		log.Information("Create environment started");
 
-		var result = await _createHandler.HandleAsync(new CreateEnvironmentCommand
+		var result = await createHandler.HandleAsync(new CreateEnvironmentCommand
 		{
 			ProjectId = request.ProjectId,
 			Key = request.Key
@@ -107,7 +101,7 @@ public sealed class EnvironmentsController(
 
 		log.Information("Update environment started");
 
-		var result = await _updateHandler.HandleAsync(new UpdateEnvironmentCommand
+		var result = await updateHandler.HandleAsync(new UpdateEnvironmentCommand
 		{
 			Id = id,
 			ProjectId = request.ProjectId,
@@ -132,7 +126,7 @@ public sealed class EnvironmentsController(
 
 		log.Information("Delete environment started");
 
-		var result = await _deleteHandler.HandleAsync(new DeleteEnvironmentCommand { Id = id }, cancellationToken);
+		var result = await deleteHandler.HandleAsync(new DeleteEnvironmentCommand { Id = id }, cancellationToken);
 
 		if (result.IsFailed)
 		{

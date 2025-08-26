@@ -10,15 +10,13 @@ namespace admin_application.Handlers.Implementations.Environments;
 
 public sealed class DeleteEnvironmentCommandHandler(IEnvironmentRepository repository) : IDeleteEnvironmentCommandHandler
 {
-	private readonly IEnvironmentRepository _repository = repository;
-
 	public async Task<Result> HandleAsync(DeleteEnvironmentCommand command, CancellationToken cancellationToken)
 	{
 		var log = Log.ForContext<DeleteEnvironmentCommandHandler>()
 			.ForContext("Id", command.Id);
 		log.Information("DeleteEnvironment started");
 
-		var result = await _repository.DeleteAsync(command.Id, cancellationToken);
+		var result = await repository.DeleteAsync(command.Id, cancellationToken);
 
 		log.Information("DeleteEnvironment completed: {Success}", result.IsSuccess);
 

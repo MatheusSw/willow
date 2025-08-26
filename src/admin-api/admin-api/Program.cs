@@ -16,82 +16,84 @@ namespace admin_api;
 
 public class Program
 {
-	/// <summary>
-	/// The main entry point for the application.
-	/// </summary>
-	static void Main(string[] args)
-	{
-		try
-		{
-			Log.Logger = new LoggerConfiguration()
-				.MinimumLevel.Information()
-				.Enrich.FromLogContext()
-				.Enrich.WithMachineName()
-				.Enrich.WithProcessId()
-				.Enrich.WithThreadId()
-				.WriteTo.Async(config =>
-				{
+    /// <summary>
+    /// The main entry point for the application.
+    /// </summary>
+    static void Main(string[] args)
+    {
+        try
+        {
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Information()
+                .Enrich.FromLogContext()
+                .Enrich.WithMachineName()
+                .Enrich.WithProcessId()
+                .Enrich.WithThreadId()
+                .WriteTo.Async(config =>
+                {
 #if !DEBUG
             config.Console(new CompactJsonFormatter());
 #else
-					config.Console();
+                    config.Console();
 #endif
-				})
-				.CreateLogger();
+                })
+                .CreateLogger();
 
-			Log.Information("Starting up admin-api");
+            Log.Information("Starting up admin-api");
 
-			var builder = WebApplication.CreateBuilder(args);
+            var builder = WebApplication.CreateBuilder(args);
 
-			builder.Logging.ClearProviders();
-			builder.Host.UseSerilog();
+            builder.Logging.ClearProviders();
+            builder.Host.UseSerilog();
 
-			builder.Services.AddOpenApi();
-			builder.Services.AddControllers();
+            builder.Services.AddOpenApi();
+            builder.Services.AddControllers();
 
-			builder.Services.AddAuthentication(ApiKeyAuthenticationHandler.SchemeName)
-				.AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(
-					ApiKeyAuthenticationHandler.SchemeName,
-					_ => { });
+            builder.Services.AddAuthentication(ApiKeyAuthenticationHandler.SchemeName)
+                .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(
+                    ApiKeyAuthenticationHandler.SchemeName,
+                    _ => { });
 
-			builder.Services.AddAuthorization();
+            builder.Services.AddAuthorization();
 
-			builder.Services.AddDbContext<FeatureToggleDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("Postgres")));
+            builder.Services.AddDbContext<FeatureToggleDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("Postgres")));
 
-			builder.Services.Configure<RedisSettings>(builder.Configuration.GetSection("Redis"));
-			builder.Services.AddStackExchangeRedisCache(options =>
-			{
-				options.Configuration = builder.Configuration["Redis:Configuration"] ?? "localhost:6379";
-				options.InstanceName = builder.Configuration["Redis:InstanceName"] ?? "admin-api:";
-			});
+            builder.Services.Configure<RedisSettings>(builder.Configuration.GetSection("Redis"));
 
-			builder.Services.AddAdminApplication();
-			builder.Services.AddAdminInfrastructure();
+            builder.Services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = builder.Configuration["Redis:Configuration"] ?? "localhost:6379";
+                options.InstanceName = builder.Configuration["Redis:InstanceName"] ?? "admin-api:";
+            });
 
-			var app = builder.Build();
+            builder.Services.AddAdminApplication();
 
-			app.UseSerilogRequestLogging();
+            builder.Services.AddAdminInfrastructure();
 
-			if (app.Environment.IsDevelopment())
-			{
-				app.MapOpenApi();
-			}
+            var app = builder.Build();
 
-			app.UseAuthentication();
-			app.UseAuthorization();
+            app.UseSerilogRequestLogging();
 
-			app.MapControllers()
-				.RequireAuthorization();
+            if (app.Environment.IsDevelopment())
+            {
+                app.MapOpenApi();
+            }
 
-			app.Run();
-		}
-		catch (Exception ex)
-		{
-			Log.Fatal(ex, "admin-api terminated unexpectedly");
-		}
-		finally
-		{
-			Log.CloseAndFlush();
-		}
-	}
+            app.UseAuthentication();
+            app.UseAuthorization();
+
+            app.MapControllers()
+                .RequireAuthorization();
+
+            app.Run();
+        }
+        catch (Exception ex)
+        {
+            Log.Fatal(ex, "admin-api terminated unexpectedly");
+        }
+        finally
+        {
+            Log.CloseAndFlush();
+        }
+    }
 }

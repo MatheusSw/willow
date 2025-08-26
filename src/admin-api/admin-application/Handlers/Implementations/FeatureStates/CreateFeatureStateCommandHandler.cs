@@ -12,8 +12,6 @@ namespace admin_application.Handlers.Implementations.FeatureStates;
 
 public sealed class CreateFeatureStateCommandHandler(IFeatureStateRepository repository) : ICreateFeatureStateCommandHandler
 {
-	private readonly IFeatureStateRepository _repository = repository;
-
 	public async Task<Result<FeatureState>> HandleAsync(CreateFeatureStateCommand command, CancellationToken cancellationToken)
 	{
 		var log = Log.ForContext<CreateFeatureStateCommandHandler>()
@@ -24,7 +22,7 @@ public sealed class CreateFeatureStateCommandHandler(IFeatureStateRepository rep
 
 		var model = new FeatureState { Id = Guid.NewGuid(), FeatureId = command.FeatureId, EnvironmentId = command.EnvironmentId, Enabled = command.Enabled, Reason = command.Reason };
 
-		var result = await _repository.CreateAsync(model, cancellationToken);
+		var result = await repository.CreateAsync(model, cancellationToken);
 
 		log.Information("CreateFeatureState completed: {Success}", result.IsSuccess);
 

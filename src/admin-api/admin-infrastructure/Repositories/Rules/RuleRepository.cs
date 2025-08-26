@@ -14,179 +14,189 @@ namespace admin_infrastructure.Repositories.Rules;
 
 public sealed class RuleRepository(FeatureToggleDbContext dbContext) : IRuleRepository
 {
-	private readonly FeatureToggleDbContext _dbContext = dbContext;
+    public async Task<Result<Rule>> CreateAsync(Rule rule, CancellationToken cancellationToken)
+    {
+        var log = Log.ForContext<RuleRepository>()
+            .ForContext("FeatureId", rule.FeatureId)
+            .ForContext("EnvironmentId", rule.EnvironmentId)
+            .ForContext("Priority", rule.Priority)
+            .ForContext("MatchType", rule.MatchType);
 
-	public async Task<Result<Rule>> CreateAsync(Rule rule, CancellationToken cancellationToken)
-	{
-		var log = Log.ForContext<RuleRepository>()
-			.ForContext("FeatureId", rule.FeatureId)
-			.ForContext("EnvironmentId", rule.EnvironmentId)
-			.ForContext("Priority", rule.Priority)
-			.ForContext("MatchType", rule.MatchType);
+        log.Information("Rule Create started");
 
-		log.Information("Rule Create started");
+        try
+        {
+            var conditionsString = System.Text.Json.JsonSerializer.Serialize(rule.Conditions);
+            var matchTypeString = rule.MatchType.ToString().ToLowerInvariant();
 
-		try
-		{
-			var conditionsString = System.Text.Json.JsonSerializer.Serialize(rule.Conditions);
-			var matchTypeString = rule.MatchType.ToString().ToLowerInvariant();
+            var entity = new Db.Entities.Rule
+            {
+                Id = rule.Id,
+                FeatureId = rule.FeatureId,
+                EnvironmentId = rule.EnvironmentId,
+                Priority = rule.Priority,
+                MatchType = matchTypeString,
+                ConditionsJson = conditionsString
+            };
 
-			var entity = new Db.Entities.Rule
-			{
-				Id = rule.Id,
-				FeatureId = rule.FeatureId,
-				EnvironmentId = rule.EnvironmentId,
-				Priority = rule.Priority,
-				MatchType = matchTypeString,
-				ConditionsJson = conditionsString
-			};
+            dbContext.Rules.Add(entity);
 
-			_dbContext.Rules.Add(entity);
-			await _dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
 
-			log.Information("Rule Create completed");
-			return Result.Ok(rule);
-		}
-		catch (DbUpdateException ex)
-		{
-			log.Error(ex, "Rule Create failed");
-			return Result.Fail("Failed to create rule");
-		}
-	}
+            log.Information("Rule Create completed");
 
-	public async Task<Result<Rule>> GetByIdAsync(Guid id, CancellationToken cancellationToken)
-	{
-		var log = Log.ForContext<RuleRepository>()
-			.ForContext("Id", id);
+            return Result.Ok(rule);
+        }
+        catch (DbUpdateException ex)
+        {
+            log.Error(ex, "Rule Create failed");
 
-		log.Information("Rule GetById started");
+            return Result.Fail("Failed to create rule");
+        }
+    }
 
-		var entity = await _dbContext.Rules.AsNoTracking().FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
-		if (entity == null)
-		{
-			log.Information("Rule not found");
-			return Result.Fail("NotFound");
-		}
+    public async Task<Result<Rule>> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var log = Log.ForContext<RuleRepository>()
+            .ForContext("Id", id);
 
-		var model = new Rule
-		{
-			Id = entity.Id,
-			FeatureId = entity.FeatureId,
-			EnvironmentId = entity.EnvironmentId,
-			Priority = entity.Priority,
-			MatchType = entity.MatchType == "any" ? admin_domain.Rules.MatchType.Any : admin_domain.Rules.MatchType.All,
-			Conditions = System.Text.Json.JsonSerializer.Deserialize<List<admin_domain.Rules.RuleCondition>>(entity.ConditionsJson) ?? []
-		};
+        log.Information("Rule GetById started");
 
-		log.Information("Rule GetById completed");
-		return Result.Ok(model);
-	}
+        var entity = await dbContext.Rules.AsNoTracking().FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+        if (entity == null)
+        {
+            log.Information("Rule not found");
+            return Result.Fail("NotFound");
+        }
 
-	public async Task<Result<List<Rule>>> ListAsync(Guid? featureId, Guid? environmentId, CancellationToken cancellationToken)
-	{
-		var log = Log.ForContext<RuleRepository>()
-			.ForContext("FeatureId", featureId)
-			.ForContext("EnvironmentId", environmentId);
+        var model = new Rule
+        {
+            Id = entity.Id,
+            FeatureId = entity.FeatureId,
+            EnvironmentId = entity.EnvironmentId,
+            Priority = entity.Priority,
+            MatchType = entity.MatchType == "any" ? admin_domain.Rules.MatchType.Any : admin_domain.Rules.MatchType.All,
+            Conditions = System.Text.Json.JsonSerializer.Deserialize<List<admin_domain.Rules.RuleCondition>>(entity.ConditionsJson) ?? []
+        };
 
-		log.Information("Rule List started");
+        log.Information("Rule GetById completed");
 
-		var query = _dbContext.Rules.AsNoTracking().AsQueryable();
-		if (featureId.HasValue)
-		{
-			query = query.Where(r => r.FeatureId == featureId.Value);
-		}
-		if (environmentId.HasValue)
-		{
-			query = query.Where(r => r.EnvironmentId == environmentId.Value);
-		}
+        return Result.Ok(model);
+    }
 
-		var rows = await query
-			.OrderBy(r => r.Priority)
-			.ThenBy(r => r.Id)
-			.Select(r => new { r.Id, r.FeatureId, r.EnvironmentId, r.Priority, r.MatchType, r.ConditionsJson })
-			.ToListAsync(cancellationToken);
+    public async Task<Result<List<Rule>>> ListAsync(Guid? featureId, Guid? environmentId, CancellationToken cancellationToken)
+    {
+        var log = Log.ForContext<RuleRepository>()
+            .ForContext("FeatureId", featureId)
+            .ForContext("EnvironmentId", environmentId);
 
-		var result = rows.Select(r => new Rule
-		{
-			Id = r.Id,
-			FeatureId = r.FeatureId,
-			EnvironmentId = r.EnvironmentId,
-			Priority = r.Priority,
-			MatchType = r.MatchType == "any" ? admin_domain.Rules.MatchType.Any : admin_domain.Rules.MatchType.All,
-			Conditions = System.Text.Json.JsonSerializer.Deserialize<List<admin_domain.Rules.RuleCondition>>(r.ConditionsJson) ?? []
-		}).ToList();
+        log.Information("Rule List started");
 
-		log.Information("Rule List completed: Count={Count}", result.Count);
-		return Result.Ok(result);
-	}
+        var query = dbContext.Rules.AsNoTracking().AsQueryable();
+        if (featureId.HasValue)
+        {
+            query = query.Where(r => r.FeatureId == featureId.Value);
+        }
+        if (environmentId.HasValue)
+        {
+            query = query.Where(r => r.EnvironmentId == environmentId.Value);
+        }
 
-	public async Task<Result<Rule>> UpdateAsync(Rule rule, CancellationToken cancellationToken)
-	{
-		var log = Log.ForContext<RuleRepository>()
-			.ForContext("Id", rule.Id)
-			.ForContext("FeatureId", rule.FeatureId)
-			.ForContext("EnvironmentId", rule.EnvironmentId)
-			.ForContext("Priority", rule.Priority)
-			.ForContext("MatchType", rule.MatchType);
+        var rows = await query
+            .OrderBy(r => r.Priority)
+            .ThenBy(r => r.Id)
+            .Select(r => new { r.Id, r.FeatureId, r.EnvironmentId, r.Priority, r.MatchType, r.ConditionsJson })
+            .ToListAsync(cancellationToken);
 
-		log.Information("Rule Update started");
+        var result = rows.Select(r => new Rule
+        {
+            Id = r.Id,
+            FeatureId = r.FeatureId,
+            EnvironmentId = r.EnvironmentId,
+            Priority = r.Priority,
+            MatchType = r.MatchType == "any" ? admin_domain.Rules.MatchType.Any : admin_domain.Rules.MatchType.All,
+            Conditions = System.Text.Json.JsonSerializer.Deserialize<List<admin_domain.Rules.RuleCondition>>(r.ConditionsJson) ?? []
+        }).ToList();
 
-		try
-		{
-			var matchTypeString = rule.MatchType.ToString().ToLowerInvariant();
-			var conditionsString = System.Text.Json.JsonSerializer.Serialize(rule.Conditions);
+        log.Information("Rule List completed: Count={Count}", result.Count);
 
-			var affected = await _dbContext.Rules
-				.Where(r => r.Id == rule.Id)
-				.ExecuteUpdateAsync(setters => setters
-					.SetProperty(r => r.FeatureId, rule.FeatureId)
-					.SetProperty(r => r.EnvironmentId, rule.EnvironmentId)
-					.SetProperty(r => r.Priority, rule.Priority)
-					.SetProperty(r => r.MatchType, matchTypeString)
-					.SetProperty(r => r.ConditionsJson, conditionsString), cancellationToken);
+        return Result.Ok(result);
+    }
 
-			if (affected == 0)
-			{
-				log.Information("Rule to update not found");
-				return Result.Fail("NotFound");
-			}
+    public async Task<Result<Rule>> UpdateAsync(Rule rule, CancellationToken cancellationToken)
+    {
+        var log = Log.ForContext<RuleRepository>()
+            .ForContext("Id", rule.Id)
+            .ForContext("FeatureId", rule.FeatureId)
+            .ForContext("EnvironmentId", rule.EnvironmentId)
+            .ForContext("Priority", rule.Priority)
+            .ForContext("MatchType", rule.MatchType);
 
-			log.Information("Rule Update completed");
-			return Result.Ok(rule);
-		}
-		catch (DbUpdateException ex)
-		{
-			log.Error(ex, "Rule Update failed");
-			return Result.Fail("Failed to update rule");
-		}
-	}
+        log.Information("Rule Update started");
 
-	public async Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken)
-	{
-		var log = Log.ForContext<RuleRepository>()
-			.ForContext("Id", id);
+        try
+        {
+            var matchTypeString = rule.MatchType.ToString().ToLowerInvariant();
+            var conditionsString = System.Text.Json.JsonSerializer.Serialize(rule.Conditions);
 
-		log.Information("Rule Delete started");
+            var affected = await dbContext.Rules
+                .Where(r => r.Id == rule.Id)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(r => r.FeatureId, rule.FeatureId)
+                    .SetProperty(r => r.EnvironmentId, rule.EnvironmentId)
+                    .SetProperty(r => r.Priority, rule.Priority)
+                    .SetProperty(r => r.MatchType, matchTypeString)
+                    .SetProperty(r => r.ConditionsJson, conditionsString), cancellationToken);
 
-		var entity = await _dbContext.Rules.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
-		if (entity == null)
-		{
-			log.Information("Rule to delete not found");
-			return Result.Fail("NotFound");
-		}
+            if (affected == 0)
+            {
+                log.Information("Rule to update not found");
 
-		_dbContext.Rules.Remove(entity);
+                return Result.Fail("NotFound");
+            }
 
-		try
-		{
-			await _dbContext.SaveChangesAsync(cancellationToken);
-			log.Information("Rule Delete completed");
-			return Result.Ok();
-		}
-		catch (DbUpdateException ex)
-		{
-			log.Error(ex, "Rule Delete failed");
-			return Result.Fail("Failed to delete rule");
-		}
-	}
+            log.Information("Rule Update completed");
+
+            return Result.Ok(rule);
+        }
+        catch (DbUpdateException ex)
+        {
+            log.Error(ex, "Rule Update failed");
+
+            return Result.Fail("Failed to update rule");
+        }
+    }
+
+    public async Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var log = Log.ForContext<RuleRepository>()
+            .ForContext("Id", id);
+
+        log.Information("Rule Delete started");
+
+        var entity = await dbContext.Rules.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+        if (entity == null)
+        {
+            log.Information("Rule to delete not found");
+
+            return Result.Fail("NotFound");
+        }
+
+        dbContext.Rules.Remove(entity);
+
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            log.Information("Rule Delete completed");
+
+            return Result.Ok();
+        }
+        catch (DbUpdateException ex)
+        {
+            log.Error(ex, "Rule Delete failed");
+
+            return Result.Fail("Failed to delete rule");
+        }
+    }
 }

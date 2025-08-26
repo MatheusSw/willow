@@ -1,5 +1,6 @@
 using admin_application.Commands;
 using admin_application.Handlers;
+using admin_application.Handlers.Implementations;
 using admin_application.Handlers.Implementations.ApiKeys;
 using admin_application.Handlers.Implementations.Environments;
 using admin_application.Handlers.Implementations.Features;
@@ -7,6 +8,7 @@ using admin_application.Handlers.Implementations.FeatureStates;
 using admin_application.Handlers.Implementations.Organizations;
 using admin_application.Handlers.Implementations.Projects;
 using admin_application.Handlers.Implementations.Rules;
+using admin_application.Handlers.Interfaces;
 using admin_application.Handlers.Interfaces.ApiKeys;
 using admin_application.Handlers.Interfaces.Environments;
 using admin_application.Handlers.Interfaces.Features;
@@ -41,6 +43,7 @@ public static class ServiceCollectionExtensions
 		services.AddScoped<ICreateFeatureStateCommandHandler, CreateFeatureStateCommandHandler>();
 		services.AddScoped<IUpdateFeatureStateCommandHandler, UpdateFeatureStateCommandHandler>();
 		services.AddScoped<IDeleteFeatureStateCommandHandler, DeleteFeatureStateCommandHandler>();
+		services.AddScoped<IPublishFeatureStateUpdatedCommandHandler, PublishFeatureStateUpdatedCommandHandler>();
 		services.AddScoped<IGetFeatureStateByIdQueryHandler, GetFeatureStateByIdQueryHandler>();
 		services.AddScoped<IListFeatureStatesQueryHandler, ListFeatureStatesQueryHandler>();
 

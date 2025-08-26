@@ -10,15 +10,13 @@ namespace admin_application.Handlers.Implementations.FeatureStates;
 
 public sealed class DeleteFeatureStateCommandHandler(IFeatureStateRepository repository) : IDeleteFeatureStateCommandHandler
 {
-	private readonly IFeatureStateRepository _repository = repository;
-
 	public async Task<Result> HandleAsync(DeleteFeatureStateCommand command, CancellationToken cancellationToken)
 	{
 		var log = Log.ForContext<DeleteFeatureStateCommandHandler>()
 			.ForContext("Id", command.Id);
 		log.Information("DeleteFeatureState started");
 
-		var result = await _repository.DeleteAsync(command.Id, cancellationToken);
+		var result = await repository.DeleteAsync(command.Id, cancellationToken);
 
 		log.Information("DeleteFeatureState completed: {Success}", result.IsSuccess);
 

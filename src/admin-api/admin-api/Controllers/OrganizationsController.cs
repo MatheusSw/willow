@@ -22,12 +22,6 @@ public sealed class OrganizationsController(
 	IGetOrganizationByIdQueryHandler getByIdHandler,
 	IListOrganizationsQueryHandler listHandler) : ControllerBase
 {
-	private readonly ICreateOrganizationCommandHandler _createHandler = createHandler;
-	private readonly IUpdateOrganizationCommandHandler _updateHandler = updateHandler;
-	private readonly IDeleteOrganizationCommandHandler _deleteHandler = deleteHandler;
-	private readonly IGetOrganizationByIdQueryHandler _getByIdHandler = getByIdHandler;
-	private readonly IListOrganizationsQueryHandler _listHandler = listHandler;
-
 	[HttpGet]
 	public async Task<ActionResult<List<OrganizationResponse>>> List([FromQuery] string? name, CancellationToken cancellationToken)
 	{
@@ -35,7 +29,7 @@ public sealed class OrganizationsController(
 			.ForContext("name", name);
 
 		log.Information("List organizations started");
-		var result = await _listHandler.HandleAsync(new ListOrganizationsQuery { Name = name }, cancellationToken);
+		var result = await listHandler.HandleAsync(new ListOrganizationsQuery { Name = name }, cancellationToken);
 
 		if (result.IsFailed)
 		{
@@ -61,7 +55,7 @@ public sealed class OrganizationsController(
 
 		log.Information("Get organization started");
 
-		var result = await _getByIdHandler.HandleAsync(new GetOrganizationByIdQuery { Id = id }, cancellationToken);
+		var result = await getByIdHandler.HandleAsync(new GetOrganizationByIdQuery { Id = id }, cancellationToken);
 
 		if (result.IsFailed)
 		{
@@ -81,7 +75,7 @@ public sealed class OrganizationsController(
 
 		log.Information("Create organization started");
 
-		var result = await _createHandler.HandleAsync(new CreateOrganizationCommand
+		var result = await createHandler.HandleAsync(new CreateOrganizationCommand
 		{
 			Name = request.Name
 		}, cancellationToken);
@@ -104,7 +98,7 @@ public sealed class OrganizationsController(
 
 		log.Information("Update organization started");
 
-		var result = await _updateHandler.HandleAsync(new UpdateOrganizationCommand
+		var result = await updateHandler.HandleAsync(new UpdateOrganizationCommand
 		{
 			Id = id,
 			Name = request.Name
@@ -128,7 +122,7 @@ public sealed class OrganizationsController(
 
 		log.Information("Delete organization started");
 
-		var result = await _deleteHandler.HandleAsync(new DeleteOrganizationCommand { Id = id }, cancellationToken);
+		var result = await deleteHandler.HandleAsync(new DeleteOrganizationCommand { Id = id }, cancellationToken);
 
 		if (result.IsFailed)
 		{

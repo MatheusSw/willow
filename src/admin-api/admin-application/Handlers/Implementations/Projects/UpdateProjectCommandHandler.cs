@@ -13,8 +13,6 @@ namespace admin_application.Handlers.Implementations.Projects;
 
 public sealed class UpdateProjectCommandHandler(IProjectRepository repository) : IUpdateProjectCommandHandler
 {
-	private readonly IProjectRepository _repository = repository;
-
 	public async Task<Result<Project>> HandleAsync(UpdateProjectCommand command, CancellationToken cancellationToken)
 	{
 		var log = Log.ForContext<UpdateProjectCommandHandler>()
@@ -25,7 +23,7 @@ public sealed class UpdateProjectCommandHandler(IProjectRepository repository) :
 
 		var model = new Project { Id = command.Id, OrgId = command.OrgId, Name = command.Name };
 
-		var result = await _repository.UpdateAsync(model, cancellationToken);
+		var result = await repository.UpdateAsync(model, cancellationToken);
 
 		log.Information("UpdateProject completed: {Success}", result.IsSuccess);
 

@@ -12,8 +12,6 @@ namespace admin_application.Handlers.Implementations.Features;
 
 public sealed class CreateFeatureCommandHandler(IFeatureRepository repository) : ICreateFeatureCommandHandler
 {
-	private readonly IFeatureRepository _repository = repository;
-
 	public async Task<Result<Feature>> HandleAsync(CreateFeatureCommand command, CancellationToken cancellationToken)
 	{
 		var log = Log.ForContext<CreateFeatureCommandHandler>()
@@ -24,7 +22,7 @@ public sealed class CreateFeatureCommandHandler(IFeatureRepository repository) :
 
 		var model = new Feature { Id = Guid.NewGuid(), ProjectId = command.ProjectId, Name = command.Name, Description = command.Description };
 
-		var result = await _repository.CreateAsync(model, cancellationToken);
+		var result = await repository.CreateAsync(model, cancellationToken);
 
 		log.Information("CreateFeature completed: {Success}", result.IsSuccess);
 
