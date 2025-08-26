@@ -14,139 +14,151 @@ namespace admin_infrastructure.Repositories.FeatureStates;
 
 public sealed class FeatureStateRepository(FeatureToggleDbContext dbContext) : IFeatureStateRepository
 {
-	public async Task<Result<FeatureState>> CreateAsync(FeatureState featureState, CancellationToken cancellationToken)
-	{
-		var log = Log.ForContext<FeatureStateRepository>()
-			.ForContext("FeatureId", featureState.FeatureId)
-			.ForContext("EnvironmentId", featureState.EnvironmentId)
-			.ForContext("Enabled", featureState.Enabled);
+    public async Task<Result<FeatureState>> CreateAsync(FeatureState featureState, CancellationToken cancellationToken)
+    {
+        var log = Log.ForContext<FeatureStateRepository>()
+            .ForContext("FeatureId", featureState.FeatureId)
+            .ForContext("EnvironmentId", featureState.EnvironmentId)
+            .ForContext("Enabled", featureState.Enabled);
 
-		log.Information("FeatureState Create started");
+        log.Information("FeatureState Create started");
 
-		try
-		{
-			var entity = new Db.Entities.FeatureState { Id = featureState.Id, FeatureId = featureState.FeatureId, EnvironmentId = featureState.EnvironmentId, Enabled = featureState.Enabled, Reason = featureState.Reason };
-			dbContext.FeatureStates.Add(entity);
-			await dbContext.SaveChangesAsync(cancellationToken);
-			log.Information("FeatureState Create completed");
-			return Result.Ok(featureState);
-		}
-		catch (DbUpdateException ex)
-		{
-			log.Error(ex, "FeatureState Create failed");
-			return Result.Fail("Failed to create feature state");
-		}
-	}
+        try
+        {
+            var entity = new Db.Entities.FeatureState { Id = featureState.Id, FeatureId = featureState.FeatureId, EnvironmentId = featureState.EnvironmentId, Enabled = featureState.Enabled, Reason = featureState.Reason };
 
-	public async Task<Result<FeatureState>> GetByIdAsync(Guid id, CancellationToken cancellationToken)
-	{
-		var log = Log.ForContext<FeatureStateRepository>()
-			.ForContext("Id", id);
+            dbContext.FeatureStates.Add(entity);
 
-		log.Information("FeatureState GetById started");
+            await dbContext.SaveChangesAsync(cancellationToken);
 
-		var entity = await dbContext.FeatureStates.AsNoTracking().FirstOrDefaultAsync(fs => fs.Id == id, cancellationToken);
-		if (entity == null)
-		{
-			log.Information("FeatureState not found");
-			return Result.Fail("NotFound");
-		}
+            log.Information("FeatureState Create completed");
 
-		var model = new FeatureState { Id = entity.Id, FeatureId = entity.FeatureId, EnvironmentId = entity.EnvironmentId, Enabled = entity.Enabled, Reason = entity.Reason ?? string.Empty };
-		log.Information("FeatureState GetById completed");
-		return Result.Ok(model);
-	}
+            return Result.Ok(featureState);
+        }
+        catch (DbUpdateException ex)
+        {
+            log.Error(ex, "FeatureState Create failed");
 
-	public async Task<Result<List<FeatureState>>> ListAsync(Guid? featureId, Guid? environmentId, CancellationToken cancellationToken)
-	{
-		var log = Log.ForContext<FeatureStateRepository>()
-			.ForContext("FeatureId", featureId)
-			.ForContext("EnvironmentId", environmentId);
+            return Result.Fail("Failed to create feature state");
+        }
+    }
 
-		log.Information("FeatureState List started");
+    public async Task<Result<FeatureState>> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var log = Log.ForContext<FeatureStateRepository>()
+            .ForContext("Id", id);
 
-		var query = dbContext.FeatureStates.AsNoTracking().AsQueryable();
-		if (featureId.HasValue)
-		{
-			query = query.Where(fs => fs.FeatureId == featureId.Value);
-		}
-		if (environmentId.HasValue)
-		{
-			query = query.Where(fs => fs.EnvironmentId == environmentId.Value);
-		}
+        log.Information("FeatureState GetById started");
 
-		var result = await query
-			.OrderBy(fs => fs.FeatureId)
-			.ThenBy(fs => fs.EnvironmentId)
-			.Select(fs => new FeatureState { Id = fs.Id, FeatureId = fs.FeatureId, EnvironmentId = fs.EnvironmentId, Enabled = fs.Enabled, Reason = fs.Reason ?? string.Empty })
-			.ToListAsync(cancellationToken);
+        var entity = await dbContext.FeatureStates.AsNoTracking().FirstOrDefaultAsync(fs => fs.Id == id, cancellationToken);
+        if (entity == null)
+        {
+            log.Information("FeatureState not found");
+            return Result.Fail("NotFound");
+        }
 
-		log.Information("FeatureState List completed: Count={Count}", result.Count);
-		return Result.Ok(result);
-	}
+        var model = new FeatureState { Id = entity.Id, FeatureId = entity.FeatureId, EnvironmentId = entity.EnvironmentId, Enabled = entity.Enabled, Reason = entity.Reason ?? string.Empty };
 
-	public async Task<Result<FeatureState>> UpdateAsync(FeatureState featureState, CancellationToken cancellationToken)
-	{
-		var log = Log.ForContext<FeatureStateRepository>()
-			.ForContext("Id", featureState.Id)
-			.ForContext("FeatureId", featureState.FeatureId)
-			.ForContext("EnvironmentId", featureState.EnvironmentId)
-			.ForContext("Enabled", featureState.Enabled);
+        log.Information("FeatureState GetById completed");
 
-		log.Information("FeatureState Update started");
+        return Result.Ok(model);
+    }
 
-		try
-		{
-			var affected = await dbContext.FeatureStates
-				.Where(fs => fs.Id == featureState.Id)
-				.ExecuteUpdateAsync(setters => setters
-					.SetProperty(fs => fs.FeatureId, featureState.FeatureId)
-					.SetProperty(fs => fs.EnvironmentId, featureState.EnvironmentId)
-					.SetProperty(fs => fs.Enabled, featureState.Enabled)
-					.SetProperty(fs => fs.Reason, featureState.Reason), cancellationToken);
+    public async Task<Result<List<FeatureState>>> ListAsync(Guid? featureId, Guid? environmentId, CancellationToken cancellationToken)
+    {
+        var log = Log.ForContext<FeatureStateRepository>()
+            .ForContext("FeatureId", featureId)
+            .ForContext("EnvironmentId", environmentId);
 
-			if (affected == 0)
-			{
-				log.Information("FeatureState to update not found");
-				return Result.Fail("NotFound");
-			}
+        log.Information("FeatureState List started");
 
-			log.Information("FeatureState Update completed");
-			return Result.Ok(featureState);
-		}
-		catch (DbUpdateException ex)
-		{
-			log.Error(ex, "FeatureState Update failed");
-			return Result.Fail("Failed to update feature state");
-		}
-	}
+        var query = dbContext.FeatureStates.AsNoTracking().AsQueryable();
+        if (featureId.HasValue)
+        {
+            query = query.Where(fs => fs.FeatureId == featureId.Value);
+        }
+        if (environmentId.HasValue)
+        {
+            query = query.Where(fs => fs.EnvironmentId == environmentId.Value);
+        }
 
-	public async Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken)
-	{
-		var log = Log.ForContext<FeatureStateRepository>()
-			.ForContext("Id", id);
+        var result = await query
+            .OrderBy(fs => fs.FeatureId)
+            .ThenBy(fs => fs.EnvironmentId)
+            .Select(fs => new FeatureState { Id = fs.Id, FeatureId = fs.FeatureId, EnvironmentId = fs.EnvironmentId, Enabled = fs.Enabled, Reason = fs.Reason ?? string.Empty })
+            .ToListAsync(cancellationToken);
 
-		log.Information("FeatureState Delete started");
+        log.Information("FeatureState List completed: Count={Count}", result.Count);
+        return Result.Ok(result);
+    }
 
-		var entity = await dbContext.FeatureStates.FirstOrDefaultAsync(fs => fs.Id == id, cancellationToken);
-		if (entity == null)
-		{
-			log.Information("FeatureState to delete not found");
-			return Result.Fail("NotFound");
-		}
+    public async Task<Result<FeatureState>> UpdateAsync(FeatureState featureState, CancellationToken cancellationToken)
+    {
+        var log = Log.ForContext<FeatureStateRepository>()
+            .ForContext("Id", featureState.Id)
+            .ForContext("FeatureId", featureState.FeatureId)
+            .ForContext("EnvironmentId", featureState.EnvironmentId)
+            .ForContext("Enabled", featureState.Enabled);
 
-		dbContext.FeatureStates.Remove(entity);
+        log.Information("FeatureState Update started");
 
-		try
-		{
-			await dbContext.SaveChangesAsync(cancellationToken);
-			log.Information("FeatureState Delete completed");
-			return Result.Ok();
-		}
-		catch (DbUpdateException ex)
-		{
-			log.Error(ex, "FeatureState Delete failed");
-			return Result.Fail("Failed to delete feature state");
-		}
-	}
+        try
+        {
+            var affected = await dbContext.FeatureStates
+                .Where(fs => fs.Id == featureState.Id)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(fs => fs.FeatureId, featureState.FeatureId)
+                    .SetProperty(fs => fs.EnvironmentId, featureState.EnvironmentId)
+                    .SetProperty(fs => fs.Enabled, featureState.Enabled)
+                    .SetProperty(fs => fs.Reason, featureState.Reason), cancellationToken);
+
+            if (affected == 0)
+            {
+                log.Information("FeatureState to update not found");
+                return Result.Fail("NotFound");
+            }
+
+            log.Information("FeatureState Update completed");
+
+            return Result.Ok(featureState);
+        }
+        catch (DbUpdateException ex)
+        {
+            log.Error(ex, "FeatureState Update failed");
+
+            return Result.Fail("Failed to update feature state");
+        }
+    }
+
+    public async Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var log = Log.ForContext<FeatureStateRepository>()
+            .ForContext("Id", id);
+
+        log.Information("FeatureState Delete started");
+
+        var entity = await dbContext.FeatureStates.FirstOrDefaultAsync(fs => fs.Id == id, cancellationToken);
+        if (entity == null)
+        {
+            log.Information("FeatureState to delete not found");
+            return Result.Fail("NotFound");
+        }
+
+        dbContext.FeatureStates.Remove(entity);
+
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            log.Information("FeatureState Delete completed");
+
+            return Result.Ok();
+        }
+        catch (DbUpdateException ex)
+        {
+            log.Error(ex, "FeatureState Delete failed");
+
+            return Result.Fail("Failed to delete feature state");
+        }
+    }
 }

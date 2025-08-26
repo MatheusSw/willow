@@ -1,16 +1,9 @@
 using admin_application.Commands;
-using admin_application.Handlers.Implementations;
 using admin_application.Handlers.Implementations.FeatureStates;
 using admin_application.Interfaces;
-
-using AutoFixture;
-using AutoFixture.AutoMoq;
-
-using FluentResults;
-
 using Moq;
 
-namespace admin_application_tests.Handlers.Implementations;
+namespace admin_application_tests.Handlers.Implementations.FeatureStates;
 
 public class PublishFeatureStateUpdatedCommandHandlerTests
 {
@@ -161,12 +154,12 @@ public class PublishFeatureStateUpdatedCommandHandlerTests
 
         // Assert
         Assert.True(result.IsSuccess);
-        eventPublisher.Verify(p => p.PublishAsync("ft:updates", 
-            It.Is<object>(e => 
+        eventPublisher.Verify(p => p.PublishAsync("ft:updates",
+            It.Is<object>(e =>
                 e.GetType().GetProperty("ProjectId") != null && e.GetType().GetProperty("ProjectId").GetValue(e) != null && e.GetType().GetProperty("ProjectId").GetValue(e).Equals(projectId) &&
                 e.GetType().GetProperty("Environment") != null && e.GetType().GetProperty("Environment").GetValue(e) != null && e.GetType().GetProperty("Environment").GetValue(e).Equals("staging") &&
                 e.GetType().GetProperty("Feature") != null && e.GetType().GetProperty("Feature").GetValue(e) != null && e.GetType().GetProperty("Feature").GetValue(e).Equals("test-feature") &&
-                e.GetType().GetProperty("Enabled") != null && e.GetType().GetProperty("Enabled").GetValue(e) != null && e.GetType().GetProperty("Enabled").GetValue(e).Equals(true)), 
+                e.GetType().GetProperty("Enabled") != null && e.GetType().GetProperty("Enabled").GetValue(e) != null && e.GetType().GetProperty("Enabled").GetValue(e).Equals(true)),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
