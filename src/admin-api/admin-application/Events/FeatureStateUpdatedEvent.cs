@@ -5,10 +5,7 @@ namespace admin_application.Events;
 public sealed class FeatureStateUpdatedEvent
 {
 	[JsonPropertyName("project_id")]
-	public string ProjectId { get; init; } = string.Empty;
-
-	[JsonPropertyName("environment")]
-	public string Environment { get; init; } = string.Empty;
+	public Guid ProjectId { get; init; }
 
 	[JsonPropertyName("feature")]
 	public string Feature { get; init; } = string.Empty;
@@ -17,5 +14,5 @@ public sealed class FeatureStateUpdatedEvent
 	public bool Enabled { get; init; }
 
 	[JsonPropertyName("timestamp")]
-	public DateTime Timestamp { get; init; } = DateTime.UtcNow;
+	public DateTimeOffset Timestamp { get; init; } = DateTime.UtcNow;
 }

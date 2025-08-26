@@ -4,14 +4,9 @@ using Serilog;
 
 namespace admin_infrastructure.Services.Redis;
 
-public sealed class RedisCacheInvalidator : ICacheInvalidator
+public sealed class RedisCacheInvalidator(IDistributedCache distributedCache) : ICacheInvalidator
 {
-	private readonly IDistributedCache _distributedCache;
-
-	public RedisCacheInvalidator(IDistributedCache distributedCache)
-	{
-		_distributedCache = distributedCache ?? throw new ArgumentNullException(nameof(distributedCache));
-	}
+	private readonly IDistributedCache _distributedCache = distributedCache ?? throw new ArgumentNullException(nameof(distributedCache));
 
 	public async Task InvalidateAsync(string key, CancellationToken cancellationToken = default)
 	{

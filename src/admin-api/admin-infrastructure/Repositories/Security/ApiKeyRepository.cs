@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 
 using admin_application.Interfaces;
-
+using admin_domain;
 using admin_infrastructure.Db;
 
 using Microsoft.EntityFrameworkCore;
@@ -20,7 +20,7 @@ public sealed class ApiKeyRepository(FeatureToggleDbContext dbContext, IDistribu
 		log.Information("Validate API key started");
 
 		var hash = ComputeSha256Base64(apiKey);
-		var cacheKey = Utilities.CacheKeys.ApiKey(hash);
+		var cacheKey = CacheKeys.ApiKey(hash);
 		var cached = await cache.GetStringAsync(cacheKey, cancellationToken);
 		if (cached == "1")
 		{
