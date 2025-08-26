@@ -1,11 +1,16 @@
 using admin_api.Controllers;
 using admin_api.DTOs.Request;
 using admin_api.DTOs.Response;
+
 using admin_application.Handlers.Interfaces.Rules;
 using admin_application.Queries;
+
 using admin_domain.Entities;
+
 using FluentResults;
+
 using Microsoft.AspNetCore.Mvc;
+
 using Moq;
 
 namespace admin_api_tests.Controllers;
@@ -38,7 +43,7 @@ public class RulesControllerTests
 		var delete = new Mock<IDeleteRuleCommandHandler>();
 		var getById = new Mock<IGetRuleByIdQueryHandler>();
 		var list = new Mock<IListRulesQueryHandler>();
-		var item = new Rule { Id = Guid.NewGuid(), FeatureId = Guid.NewGuid(), EnvironmentId = Guid.NewGuid(), Priority = 1, MatchType = admin_domain.Rules.MatchType.All, Conditions = new List<admin_domain.Rules.RuleCondition>() };
+		var item = new Rule { Id = Guid.NewGuid(), FeatureId = Guid.NewGuid(), EnvironmentId = Guid.NewGuid(), Priority = 1, MatchType = admin_domain.Rules.MatchType.All, Conditions = [] };
 		list.Setup(h => h.HandleAsync(It.IsAny<ListRulesQuery>(), It.IsAny<CancellationToken>()))
 			.ReturnsAsync(Result.Ok(new List<Rule> { item }));
 
@@ -83,12 +88,10 @@ public class RulesControllerTests
 
 		var controller = new RulesController(create.Object, update.Object, delete.Object, getById.Object, list.Object);
 
-		var req = new CreateRuleRequest { FeatureId = Guid.NewGuid(), EnvironmentId = Guid.NewGuid(), Priority = 1, MatchType = "all", Conditions = new List<admin_api.DTOs.Request.RuleConditionDto>() };
+		var req = new CreateRuleRequest { FeatureId = Guid.NewGuid(), EnvironmentId = Guid.NewGuid(), Priority = 1, MatchType = "all", Conditions = [] };
 		var action = await controller.Create(req, CancellationToken.None);
 
 		var problem = Assert.IsType<ObjectResult>(action.Result);
 		Assert.Equal(500, problem.StatusCode);
 	}
 }
-
-

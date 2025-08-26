@@ -10,5 +10,3 @@ public static class FixtureFactory
 		return new Fixture().Customize(new AutoMoqCustomization { ConfigureMembers = true });
 	}
 }
-
-

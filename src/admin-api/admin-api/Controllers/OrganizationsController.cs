@@ -1,164 +1,148 @@
 using admin_api.DTOs.Request;
 using admin_api.DTOs.Response;
+
 using admin_application.Commands;
 using admin_application.Handlers.Interfaces.Organizations;
 using admin_application.Queries;
+
 using admin_domain.Entities;
+
 using Microsoft.AspNetCore.Mvc;
+
 using Serilog;
 
 namespace admin_api.Controllers;
 
 [ApiController]
 [Route("v1/organizations")]
-public sealed class OrganizationsController : ControllerBase
+public sealed class OrganizationsController(
+	ICreateOrganizationCommandHandler createHandler,
+	IUpdateOrganizationCommandHandler updateHandler,
+	IDeleteOrganizationCommandHandler deleteHandler,
+	IGetOrganizationByIdQueryHandler getByIdHandler,
+	IListOrganizationsQueryHandler listHandler) : ControllerBase
 {
-    private readonly ICreateOrganizationCommandHandler _createHandler;
-    private readonly IUpdateOrganizationCommandHandler _updateHandler;
-    private readonly IDeleteOrganizationCommandHandler _deleteHandler;
-    private readonly IGetOrganizationByIdQueryHandler _getByIdHandler;
-    private readonly IListOrganizationsQueryHandler _listHandler;
+	private readonly ICreateOrganizationCommandHandler _createHandler = createHandler;
+	private readonly IUpdateOrganizationCommandHandler _updateHandler = updateHandler;
+	private readonly IDeleteOrganizationCommandHandler _deleteHandler = deleteHandler;
+	private readonly IGetOrganizationByIdQueryHandler _getByIdHandler = getByIdHandler;
+	private readonly IListOrganizationsQueryHandler _listHandler = listHandler;
 
-    public OrganizationsController(
-        ICreateOrganizationCommandHandler createHandler,
-        IUpdateOrganizationCommandHandler updateHandler,
-        IDeleteOrganizationCommandHandler deleteHandler,
-        IGetOrganizationByIdQueryHandler getByIdHandler,
-        IListOrganizationsQueryHandler listHandler)
-    {
-        _createHandler = createHandler;
-        _updateHandler = updateHandler;
-        _deleteHandler = deleteHandler;
-        _getByIdHandler = getByIdHandler;
-        _listHandler = listHandler;
-    }
+	[HttpGet]
+	public async Task<ActionResult<List<OrganizationResponse>>> List([FromQuery] string? name, CancellationToken cancellationToken)
+	{
+		var log = Log.ForContext<OrganizationsController>()
+			.ForContext("name", name);
 
-    [HttpGet]
-    public async Task<ActionResult<List<OrganizationResponse>>> List([FromQuery] string? name, CancellationToken cancellationToken)
-    {
-        var log = Log.ForContext<OrganizationsController>()
-            .ForContext("name", name);
+		log.Information("List organizations started");
+		var result = await _listHandler.HandleAsync(new ListOrganizationsQuery { Name = name }, cancellationToken);
 
-        log.Information("List organizations started");
-        var result = await _listHandler.HandleAsync(new ListOrganizationsQuery { Name = name }, cancellationToken);
+		if (result.IsFailed)
+		{
+			return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
+		}
 
-        if (result.IsFailed)
-        {
-            return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
-        }
+		var response = result.Value.Select(Map).ToList();
+		if (response.Count == 0)
+		{
+			log.Information("List organizations completed: no content");
+			return NoContent();
+		}
 
-        var response = result.Value.Select(Map).ToList();
-        if (response.Count == 0)
-        {
-            log.Information("List organizations completed: no content");
-            return NoContent();
-        }
+		log.Information("List organizations completed: {Count}", response.Count);
+		return Ok(response);
+	}
 
-        log.Information("List organizations completed: {Count}", response.Count);
-        return Ok(response);
-    }
+	[HttpGet("{id:guid}")]
+	public async Task<ActionResult<OrganizationResponse>> GetById([FromRoute] Guid id, CancellationToken cancellationToken)
+	{
+		var log = Log.ForContext<OrganizationsController>()
+			.ForContext("id", id);
 
-    [HttpGet("{id:guid}")]
-    public async Task<ActionResult<OrganizationResponse>> GetById([FromRoute] Guid id, CancellationToken cancellationToken)
-    {
-        var log = Log.ForContext<OrganizationsController>()
-            .ForContext("id", id);
+		log.Information("Get organization started");
 
-        log.Information("Get organization started");
+		var result = await _getByIdHandler.HandleAsync(new GetOrganizationByIdQuery { Id = id }, cancellationToken);
 
-        var result = await _getByIdHandler.HandleAsync(new GetOrganizationByIdQuery { Id = id }, cancellationToken);
+		if (result.IsFailed)
+		{
+			return result.Errors.Any(e => e.Message == "NotFound")
+				? (ActionResult<OrganizationResponse>)NotFound()
+				: (ActionResult<OrganizationResponse>)Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
+		}
 
-        if (result.IsFailed)
-        {
-            if (result.Errors.Any(e => e.Message == "NotFound"))
-            {
-                return NotFound();
-            }
+		return Ok(Map(result.Value));
+	}
 
-            return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
-        }
+	[HttpPost]
+	public async Task<ActionResult<OrganizationResponse>> Create([FromBody] CreateOrganizationRequest request, CancellationToken cancellationToken)
+	{
+		var log = Log.ForContext<OrganizationsController>()
+			.ForContext("name", request.Name);
 
-        return Ok(Map(result.Value));
-    }
+		log.Information("Create organization started");
 
-    [HttpPost]
-    public async Task<ActionResult<OrganizationResponse>> Create([FromBody] CreateOrganizationRequest request, CancellationToken cancellationToken)
-    {
-        var log = Log.ForContext<OrganizationsController>()
-            .ForContext("name", request.Name);
+		var result = await _createHandler.HandleAsync(new CreateOrganizationCommand
+		{
+			Name = request.Name
+		}, cancellationToken);
 
-        log.Information("Create organization started");
+		if (result.IsFailed)
+		{
+			return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
+		}
 
-        var result = await _createHandler.HandleAsync(new CreateOrganizationCommand
-        {
-            Name = request.Name
-        }, cancellationToken);
+		var created = Map(result.Value);
+		return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+	}
 
-        if (result.IsFailed)
-        {
-            return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
-        }
+	[HttpPut("{id:guid}")]
+	public async Task<ActionResult<OrganizationResponse>> Update([FromRoute] Guid id, [FromBody] UpdateOrganizationRequest request, CancellationToken cancellationToken)
+	{
+		var log = Log.ForContext<OrganizationsController>()
+			.ForContext("id", id)
+			.ForContext("name", request.Name);
 
-        var created = Map(result.Value);
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
-    }
+		log.Information("Update organization started");
 
-    [HttpPut("{id:guid}")]
-    public async Task<ActionResult<OrganizationResponse>> Update([FromRoute] Guid id, [FromBody] UpdateOrganizationRequest request, CancellationToken cancellationToken)
-    {
-        var log = Log.ForContext<OrganizationsController>()
-            .ForContext("id", id)
-            .ForContext("name", request.Name);
+		var result = await _updateHandler.HandleAsync(new UpdateOrganizationCommand
+		{
+			Id = id,
+			Name = request.Name
+		}, cancellationToken);
 
-        log.Information("Update organization started");
+		if (result.IsFailed)
+		{
+			return result.Errors.Any(e => e.Message == "NotFound")
+				? (ActionResult<OrganizationResponse>)NotFound()
+				: (ActionResult<OrganizationResponse>)Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
+		}
 
-        var result = await _updateHandler.HandleAsync(new UpdateOrganizationCommand
-        {
-            Id = id,
-            Name = request.Name
-        }, cancellationToken);
+		return Ok(Map(result.Value));
+	}
 
-        if (result.IsFailed)
-        {
-            if (result.Errors.Any(e => e.Message == "NotFound"))
-            {
-                return NotFound();
-            }
+	[HttpDelete("{id:guid}")]
+	public async Task<ActionResult> Delete([FromRoute] Guid id, CancellationToken cancellationToken)
+	{
+		var log = Log.ForContext<OrganizationsController>()
+			.ForContext("id", id);
 
-            return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
-        }
+		log.Information("Delete organization started");
 
-        return Ok(Map(result.Value));
-    }
+		var result = await _deleteHandler.HandleAsync(new DeleteOrganizationCommand { Id = id }, cancellationToken);
 
-    [HttpDelete("{id:guid}")]
-    public async Task<ActionResult> Delete([FromRoute] Guid id, CancellationToken cancellationToken)
-    {
-        var log = Log.ForContext<OrganizationsController>()
-            .ForContext("id", id);
+		if (result.IsFailed)
+		{
+			return result.Errors.Any(e => e.Message == "NotFound")
+				? NotFound()
+				: Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
+		}
 
-        log.Information("Delete organization started");
+		return NoContent();
+	}
 
-        var result = await _deleteHandler.HandleAsync(new DeleteOrganizationCommand { Id = id }, cancellationToken);
-
-        if (result.IsFailed)
-        {
-            if (result.Errors.Any(e => e.Message == "NotFound"))
-            {
-                return NotFound();
-            }
-
-            return Problem(statusCode: 500, detail: string.Join(";", result.Errors.Select(e => e.Message)));
-        }
-
-        return NoContent();
-    }
-
-    private static OrganizationResponse Map(Organization model) => new()
-    {
-        Id = model.Id,
-        Name = model.Name
-    };
+	private static OrganizationResponse Map(Organization model) => new()
+	{
+		Id = model.Id,
+		Name = model.Name
+	};
 }
-
-
