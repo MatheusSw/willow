@@ -19,7 +19,7 @@ public class ListRulesQueryHandlerTests
     public async Task HandleAsync_RepoReturnsList_ReturnsList()
     {
         // Arrange
-        var fixture = FixtureFactory.Create();
+        FixtureFactory.Create();
         var repo = new Mock<IRuleRepository>();
         var item = new Rule { Id = Guid.NewGuid(), FeatureId = Guid.NewGuid(), EnvironmentId = Guid.NewGuid(), Priority = 1 };
         repo.Setup(r => r.ListAsync(It.IsAny<Guid?>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))

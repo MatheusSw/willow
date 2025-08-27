@@ -20,7 +20,7 @@ public class UpdateFeatureStateCommandHandlerTests
     public async Task HandleAsync_RepoSucceeds_ReturnsUpdatedFeatureState()
     {
         // Arrange
-        var fixture = FixtureFactory.Create();
+        FixtureFactory.Create();
         var featureStateRepo = new Mock<IFeatureStateRepository>();
         var featureRepo = new Mock<IFeatureRepository>();
         var environmentRepo = new Mock<IEnvironmentRepository>();
@@ -55,7 +55,7 @@ public class UpdateFeatureStateCommandHandlerTests
     public async Task HandleAsync_RepoFails_ReturnsFailure()
     {
         // Arrange
-        var fixture = FixtureFactory.Create();
+        FixtureFactory.Create();
         var featureStateRepo = new Mock<IFeatureStateRepository>();
         var featureRepo = new Mock<IFeatureRepository>();
         var environmentRepo = new Mock<IEnvironmentRepository>();

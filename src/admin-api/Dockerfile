@@ -16,8 +16,7 @@ COPY admin-domain-tests/admin-domain-tests.csproj ./admin-domain-tests/admin-dom
 
 RUN dotnet restore ./admin.sln
 
-# Copy only project files and source for the admin-api to avoid including the entire build context
-# Copy solution and project files already done above, now copy source per project
+# Copy the rest of the source
 COPY admin-api/ ./admin-api/
 COPY admin-application/ ./admin-application/
 COPY admin-infrastructure/ ./admin-infrastructure/

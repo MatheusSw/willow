@@ -20,7 +20,7 @@ public class UpdateRuleCommandHandlerTests
     public async Task HandleAsync_RepoSucceeds_ReturnsUpdatedRule()
     {
         // Arrange
-        var fixture = FixtureFactory.Create();
+        FixtureFactory.Create();
         var repo = new Mock<IRuleRepository>();
         repo.Setup(r => r.UpdateAsync(It.IsAny<Rule>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Rule r, CancellationToken _) => Result.Ok(r));
@@ -41,7 +41,7 @@ public class UpdateRuleCommandHandlerTests
     public async Task HandleAsync_RepoFails_ReturnsFailure()
     {
         // Arrange
-        var fixture = FixtureFactory.Create();
+        FixtureFactory.Create();
         var repo = new Mock<IRuleRepository>();
         repo.Setup(r => r.UpdateAsync(It.IsAny<Rule>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Fail<Rule>("NotFound"));

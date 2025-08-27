@@ -1,6 +1,8 @@
 using admin_application.Commands;
+using admin_application.Events;
 using admin_application.Handlers.Implementations.FeatureStates;
 using admin_application.Interfaces;
+using admin_domain;
 using Moq;
 
 namespace admin_application_tests.Handlers.Implementations.FeatureStates;
@@ -11,11 +13,11 @@ public class PublishFeatureStateUpdatedCommandHandlerTests
     public async Task HandleAsync_SuccessfulPublishingAndCacheInvalidation_ReturnsSuccess()
     {
         // Arrange
-        var fixture = FixtureFactory.Create();
+        FixtureFactory.Create();
         var eventPublisher = new Mock<IEventPublisher>();
         var cacheInvalidator = new Mock<ICacheInvalidator>();
 
-        eventPublisher.Setup(p => p.PublishAsync(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<CancellationToken>()))
+        eventPublisher.Setup(p => p.PublishAsync(It.IsAny<string>(), It.IsAny<FeatureStateUpdatedEvent>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         cacheInvalidator.Setup(c => c.InvalidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -41,11 +43,10 @@ public class PublishFeatureStateUpdatedCommandHandlerTests
     public async Task HandleAsync_EventPublishingFails_StillReturnsSuccessAndInvalidatesCache()
     {
         // Arrange
-        var fixture = FixtureFactory.Create();
         var eventPublisher = new Mock<IEventPublisher>();
         var cacheInvalidator = new Mock<ICacheInvalidator>();
 
-        eventPublisher.Setup(p => p.PublishAsync(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<CancellationToken>()))
+        eventPublisher.Setup(p => p.PublishAsync(It.IsAny<string>(), It.IsAny<FeatureStateUpdatedEvent>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Redis connection failed"));
         cacheInvalidator.Setup(c => c.InvalidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -71,11 +72,10 @@ public class PublishFeatureStateUpdatedCommandHandlerTests
     public async Task HandleAsync_CacheInvalidationFails_StillReturnsSuccessAndPublishesEvent()
     {
         // Arrange
-        var fixture = FixtureFactory.Create();
         var eventPublisher = new Mock<IEventPublisher>();
         var cacheInvalidator = new Mock<ICacheInvalidator>();
 
-        eventPublisher.Setup(p => p.PublishAsync(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<CancellationToken>()))
+        eventPublisher.Setup(p => p.PublishAsync(It.IsAny<string>(), It.IsAny<FeatureStateUpdatedEvent>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         cacheInvalidator.Setup(c => c.InvalidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new TimeoutException("Cache timeout"));
@@ -101,11 +101,10 @@ public class PublishFeatureStateUpdatedCommandHandlerTests
     public async Task HandleAsync_BothOperationsFail_StillReturnsSuccess()
     {
         // Arrange
-        var fixture = FixtureFactory.Create();
         var eventPublisher = new Mock<IEventPublisher>();
         var cacheInvalidator = new Mock<ICacheInvalidator>();
 
-        eventPublisher.Setup(p => p.PublishAsync(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<CancellationToken>()))
+        eventPublisher.Setup(p => p.PublishAsync(It.IsAny<string>(), It.IsAny<FeatureStateUpdatedEvent>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("Event publishing failed"));
         cacheInvalidator.Setup(c => c.InvalidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("Cache invalidation failed"));
@@ -131,12 +130,12 @@ public class PublishFeatureStateUpdatedCommandHandlerTests
     public async Task HandleAsync_ValidCommand_PublishesCorrectEventData()
     {
         // Arrange
-        var fixture = FixtureFactory.Create();
         var eventPublisher = new Mock<IEventPublisher>();
         var cacheInvalidator = new Mock<ICacheInvalidator>();
 
-        eventPublisher.Setup(p => p.PublishAsync(It.IsAny<string>(), It.IsAny<object>(), It.IsAny<CancellationToken>()))
+        eventPublisher.Setup(p => p.PublishAsync(It.IsAny<string>(), It.IsAny<FeatureStateUpdatedEvent>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
+        
         cacheInvalidator.Setup(c => c.InvalidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
@@ -154,12 +153,8 @@ public class PublishFeatureStateUpdatedCommandHandlerTests
 
         // Assert
         Assert.True(result.IsSuccess);
-        eventPublisher.Verify(p => p.PublishAsync("ft:updates",
-            It.Is<object>(e =>
-                e.GetType().GetProperty("ProjectId") != null && e.GetType().GetProperty("ProjectId").GetValue(e) != null && e.GetType().GetProperty("ProjectId").GetValue(e).Equals(projectId) &&
-                e.GetType().GetProperty("Environment") != null && e.GetType().GetProperty("Environment").GetValue(e) != null && e.GetType().GetProperty("Environment").GetValue(e).Equals("staging") &&
-                e.GetType().GetProperty("Feature") != null && e.GetType().GetProperty("Feature").GetValue(e) != null && e.GetType().GetProperty("Feature").GetValue(e).Equals("test-feature") &&
-                e.GetType().GetProperty("Enabled") != null && e.GetType().GetProperty("Enabled").GetValue(e) != null && e.GetType().GetProperty("Enabled").GetValue(e).Equals(true)),
+        eventPublisher.Verify(p => p.PublishAsync<FeatureStateUpdatedEvent>("ft:updates",
+            It.Is<FeatureStateUpdatedEvent>(e => e.ProjectId == command.ProjectId && e.Feature == command.FeatureName && e.Enabled == command.Enabled),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -167,7 +162,6 @@ public class PublishFeatureStateUpdatedCommandHandlerTests
     public async Task HandleAsync_ValidCommand_InvalidatesCorrectCacheKey()
     {
         // Arrange
-        var fixture = FixtureFactory.Create();
         var eventPublisher = new Mock<IEventPublisher>();
         var cacheInvalidator = new Mock<ICacheInvalidator>();
 
@@ -185,7 +179,7 @@ public class PublishFeatureStateUpdatedCommandHandlerTests
             Enabled = false
         };
 
-        var expectedCacheKey = $"ft:cfg:{projectId}:production:cache-test-feature";
+        var expectedCacheKey = CacheKeys.FeatureConfig(command.ProjectId, command.FeatureName);
 
         // Act
         var result = await handler.HandleAsync(command, CancellationToken.None);

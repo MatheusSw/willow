@@ -19,7 +19,7 @@ public class ListFeatureStatesQueryHandlerTests
     public async Task HandleAsync_RepoReturnsList_ReturnsList()
     {
         // Arrange
-        var fixture = FixtureFactory.Create();
+        FixtureFactory.Create();
         var repo = new Mock<IFeatureStateRepository>();
         var item = new FeatureState { Id = Guid.NewGuid(), FeatureId = Guid.NewGuid(), EnvironmentId = Guid.NewGuid(), Enabled = true };
         repo.Setup(r => r.ListAsync(It.IsAny<Guid?>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))

@@ -19,7 +19,7 @@ public class CreateFeatureStateCommandHandlerTests
     public async Task HandleAsync_RepoSucceeds_ReturnsCreatedFeatureState()
     {
         // Arrange
-        var fixture = FixtureFactory.Create();
+        FixtureFactory.Create();
         var repo = new Mock<IFeatureStateRepository>();
         repo.Setup(r => r.CreateAsync(It.IsAny<FeatureState>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((FeatureState fs, CancellationToken _) => Result.Ok(fs));
@@ -40,7 +40,7 @@ public class CreateFeatureStateCommandHandlerTests
     public async Task HandleAsync_RepoFails_ReturnsFailure()
     {
         // Arrange
-        var fixture = FixtureFactory.Create();
+        FixtureFactory.Create();
         var repo = new Mock<IFeatureStateRepository>();
         repo.Setup(r => r.CreateAsync(It.IsAny<FeatureState>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Fail<FeatureState>("error"));
