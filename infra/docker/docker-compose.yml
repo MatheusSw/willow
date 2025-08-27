@@ -1,3 +1,4 @@
+# For local development
 version: "3.9"
 
 services:
@@ -6,7 +7,6 @@ services:
     container_name: evaluation-postgres
     restart: unless-stopped
     environment:
-      # TODO: Manage the credentials properly, maybe using docker secrets
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=feature_toggle
@@ -45,7 +45,6 @@ services:
       redis:
         condition: service_healthy
     environment:
-      # TODO: Manage the credentials properly, maybe using docker secrets
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://0.0.0.0:8080
       - Redis__Configuration=redis:6379
