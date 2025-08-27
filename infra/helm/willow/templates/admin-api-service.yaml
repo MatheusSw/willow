@@ -1,0 +1,20 @@
+{{- if .Values.adminApi.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: willow-admin-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "willow.labels" . | nindent 4 }}
+    app.kubernetes.io/component: admin-api
+spec:
+  type: {{ .Values.adminApi.service.type }}
+  ports:
+    - port: {{ .Values.adminApi.service.port }}
+      targetPort: {{ .Values.adminApi.service.targetPort }}
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "willow.adminApi.selectorLabels" . | nindent 4 }}
+{{- end }}

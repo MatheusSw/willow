@@ -1,0 +1,33 @@
+{{- if .Values.evaluationApi.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: willow-evaluation-api-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "willow.labels" . | nindent 4 }}
+    app.kubernetes.io/component: evaluation-api
+data:
+  {{- range $key, $value := .Values.configMaps.evaluationApi }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+{{- end }}
+
+{{- if .Values.adminApi.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: willow-admin-api-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "willow.labels" . | nindent 4 }}
+    app.kubernetes.io/component: admin-api
+data:
+  {{- range $key, $value := .Values.configMaps.adminApi }}
+  {{- if not (hasPrefix "ConnectionStrings__Postgres" $key) }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+  {{- end }}
+{{- end }}

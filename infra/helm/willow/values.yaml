@@ -1,0 +1,259 @@
+# Default values for willow
+# This is a YAML-formatted file.
+
+global:
+  environment: dev
+  imageRegistry: ""
+  imagePullSecrets: []
+
+# PostgreSQL configuration
+postgresql:
+  enabled: true
+  image:
+    repository: postgres
+    tag: "16-alpine"
+    pullPolicy: IfNotPresent
+  
+  replicaCount: 1
+  
+  auth:
+    database: feature_toggle
+    username: postgres
+    # Password will be set via secret
+    existingSecret: willow-postgres-secret
+    secretKeys:
+      adminPasswordKey: postgres-password
+  
+  persistence:
+    enabled: true
+    storageClass: ""
+    size: 10Gi
+    accessModes:
+      - ReadWriteOnce
+  
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  service:
+    type: ClusterIP
+    port: 5432
+  
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 6
+  
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 6
+
+# Redis configuration
+redis:
+  enabled: true
+  image:
+    repository: redis
+    tag: "7-alpine"
+    pullPolicy: IfNotPresent
+  
+  replicaCount: 1
+  cluster:
+    enabled: false
+  
+  auth:
+    enabled: false
+    # For future cluster mode
+    existingSecret: ""
+    existingSecretPasswordKey: ""
+  
+  persistence:
+    enabled: true
+    storageClass: ""
+    size: 5Gi
+    accessModes:
+      - ReadWriteOnce
+  
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+  
+  service:
+    type: ClusterIP
+    port: 6379
+  
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 20
+    periodSeconds: 5
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 5
+  
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 5
+
+# Evaluation API configuration
+evaluationApi:
+  enabled: true
+  image:
+    repository: willow/evaluation-api
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  
+  replicaCount: 2
+  
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+  
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  env:
+    ASPNETCORE_ENVIRONMENT: Development
+    ASPNETCORE_URLS: "http://0.0.0.0:8080"
+  
+  envFrom:
+    - secretRef:
+        name: willow-evaluation-api-secret
+    - configMapRef:
+        name: willow-evaluation-api-config
+  
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 8080
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  
+  readinessProbe:
+    httpGet:
+      path: /health/ready
+      port: 8080
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+  
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /
+    hosts:
+      - host: evaluation-api.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+
+# Admin API configuration
+adminApi:
+  enabled: true
+  image:
+    repository: willow/admin-api
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  
+  replicaCount: 2
+  
+  service:
+    type: ClusterIP
+    port: 8081
+    targetPort: 8081
+  
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  env:
+    ASPNETCORE_ENVIRONMENT: Development
+    ASPNETCORE_URLS: "http://0.0.0.0:8081"
+  
+  envFrom:
+    - secretRef:
+        name: willow-admin-api-secret
+    - configMapRef:
+        name: willow-admin-api-config
+  
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 8081
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  
+  readinessProbe:
+    httpGet:
+      path: /health/ready
+      port: 8081
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+  
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /
+    hosts:
+      - host: admin-api.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+
+# Secrets configuration
+secrets:
+  postgresql:
+    password: "postgres"
+  
+  evaluationApi:
+    apiKey: "eval-api-key-change-me"
+  
+  adminApi:
+    apiKey: "admin-api-key-change-me"
+
+# ConfigMaps configuration
+configMaps:
+  evaluationApi:
+    Redis__Configuration: "willow-redis:6379"
+  
+  adminApi:
+    Redis__Configuration: "willow-redis:6379"
+    ConnectionStrings__Postgres: "Host=willow-postgresql;Port=5432;Database=feature_toggle;Username=postgres;"

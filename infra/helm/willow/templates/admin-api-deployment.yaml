@@ -1,0 +1,54 @@
+{{- if .Values.adminApi.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: willow-admin-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "willow.labels" . | nindent 4 }}
+    app.kubernetes.io/component: admin-api
+spec:
+  replicas: {{ .Values.adminApi.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "willow.adminApi.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "willow.adminApi.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: admin-api
+          image: "{{ .Values.global.imageRegistry }}{{ .Values.adminApi.image.repository }}:{{ .Values.adminApi.image.tag }}"
+          imagePullPolicy: {{ .Values.adminApi.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.adminApi.service.targetPort }}
+              protocol: TCP
+          env:
+            {{- range $key, $value := .Values.adminApi.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          {{- if .Values.adminApi.envFrom }}
+          envFrom:
+            {{- toYaml .Values.adminApi.envFrom | nindent 12 }}
+          {{- end }}
+          {{- if .Values.adminApi.livenessProbe }}
+          livenessProbe:
+            {{- toYaml .Values.adminApi.livenessProbe | nindent 12 }}
+          {{- end }}
+          {{- if .Values.adminApi.readinessProbe }}
+          readinessProbe:
+            {{- toYaml .Values.adminApi.readinessProbe | nindent 12 }}
+          {{- end }}
+          {{- if .Values.adminApi.resources }}
+          resources:
+            {{- toYaml .Values.adminApi.resources | nindent 12 }}
+          {{- end }}
+{{- end }}

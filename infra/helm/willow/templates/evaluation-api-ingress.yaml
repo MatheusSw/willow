@@ -1,0 +1,44 @@
+{{- if and .Values.evaluationApi.enabled .Values.evaluationApi.ingress.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: willow-evaluation-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "willow.labels" . | nindent 4 }}
+    app.kubernetes.io/component: evaluation-api
+  {{- with .Values.evaluationApi.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.evaluationApi.ingress.className }}
+  ingressClassName: {{ .Values.evaluationApi.ingress.className }}
+  {{- end }}
+  {{- if .Values.evaluationApi.ingress.tls }}
+  tls:
+    {{- range .Values.evaluationApi.ingress.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- range .Values.evaluationApi.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: willow-evaluation-api
+                port:
+                  number: {{ $.Values.evaluationApi.service.port }}
+          {{- end }}
+    {{- end }}
+{{- end }}

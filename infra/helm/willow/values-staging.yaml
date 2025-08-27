@@ -1,0 +1,93 @@
+# Staging environment values
+global:
+  environment: staging
+  imageRegistry: "your-registry.com/"
+
+# PostgreSQL - moderate resources for staging
+postgresql:
+  replicaCount: 1
+  persistence:
+    size: 20Gi
+    storageClass: "fast-ssd"
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+
+# Redis - single node with more resources
+redis:
+  replicaCount: 1
+  cluster:
+    enabled: false
+  persistence:
+    size: 10Gi
+    storageClass: "fast-ssd"
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "200m"
+
+# Evaluation API - multiple replicas for staging
+evaluationApi:
+  replicaCount: 2
+  image:
+    tag: "staging"
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  env:
+    ASPNETCORE_ENVIRONMENT: Staging
+  ingress:
+    hosts:
+      - host: evaluation-api.staging.dummy.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: evaluation-api-staging-tls
+        hosts:
+          - evaluation-api.staging.dummy.com
+
+# Admin API - multiple replicas for staging
+adminApi:
+  replicaCount: 2
+  image:
+    tag: "staging"
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  env:
+    ASPNETCORE_ENVIRONMENT: Staging
+  ingress:
+    hosts:
+      - host: admin-api.staging.dummy.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: admin-api-staging-tls
+        hosts:
+          - admin-api.staging.dummy.com
+
+# Staging secrets (should be managed via external secret management)
+secrets:
+  postgresql:
+    password: "staging-postgres-secure-pass"
+  evaluationApi:
+    apiKey: "staging-eval-api-secure-key"
+  adminApi:
+    apiKey: "staging-admin-api-secure-key"

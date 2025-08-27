@@ -1,0 +1,103 @@
+# Production environment values
+global:
+  environment: production
+  imageRegistry: "your-registry.com/"
+  imagePullSecrets:
+    - name: registry-secret
+
+# PostgreSQL - production ready with high availability considerations
+postgresql:
+  replicaCount: 1  # Consider using external managed PostgreSQL for production
+  persistence:
+    size: 100Gi
+    storageClass: "premium-ssd"
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+
+# Redis - production setup (consider Redis cluster for HA)
+redis:
+  replicaCount: 1  # Set to 3+ for cluster mode
+  cluster:
+    enabled: false  # Set to true for production cluster
+  persistence:
+    size: 50Gi
+    storageClass: "premium-ssd"
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+
+# Evaluation API - highly available
+evaluationApi:
+  replicaCount: 3
+  image:
+    tag: "v1.0.0"
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+  env:
+    ASPNETCORE_ENVIRONMENT: Production
+  ingress:
+    hosts:
+      - host: evaluation-api.dummy.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: evaluation-api-prod-tls
+        hosts:
+          - evaluation-api.dummy.com
+    annotations:
+      nginx.ingress.kubernetes.io/rate-limit: "100"
+      nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+
+# Admin API - highly available
+adminApi:
+  replicaCount: 3
+  image:
+    tag: "v1.0.0"
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+  env:
+    ASPNETCORE_ENVIRONMENT: Production
+  ingress:
+    hosts:
+      - host: admin-api.dummy.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: admin-api-prod-tls
+        hosts:
+          - admin-api.dummy.com
+    annotations:
+      nginx.ingress.kubernetes.io/rate-limit: "50"
+      nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+      nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+
+# Production secrets (MUST be managed via external secret management like Vault, AWS Secrets Manager, etc.)
+# These are placeholders - DO NOT use these values in production
+secrets:
+  postgresql:
+    password: "CHANGE-ME-USE-EXTERNAL-SECRET-MANAGER"
+  evaluationApi:
+    apiKey: "CHANGE-ME-USE-EXTERNAL-SECRET-MANAGER"
+  adminApi:
+    apiKey: "CHANGE-ME-USE-EXTERNAL-SECRET-MANAGER"

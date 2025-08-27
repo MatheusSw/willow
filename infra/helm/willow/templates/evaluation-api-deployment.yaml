@@ -1,0 +1,54 @@
+{{- if .Values.evaluationApi.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: willow-evaluation-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "willow.labels" . | nindent 4 }}
+    app.kubernetes.io/component: evaluation-api
+spec:
+  replicas: {{ .Values.evaluationApi.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "willow.evaluationApi.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "willow.evaluationApi.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: evaluation-api
+          image: "{{ .Values.global.imageRegistry }}{{ .Values.evaluationApi.image.repository }}:{{ .Values.evaluationApi.image.tag }}"
+          imagePullPolicy: {{ .Values.evaluationApi.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.evaluationApi.service.targetPort }}
+              protocol: TCP
+          env:
+            {{- range $key, $value := .Values.evaluationApi.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          {{- if .Values.evaluationApi.envFrom }}
+          envFrom:
+            {{- toYaml .Values.evaluationApi.envFrom | nindent 12 }}
+          {{- end }}
+          {{- if .Values.evaluationApi.livenessProbe }}
+          livenessProbe:
+            {{- toYaml .Values.evaluationApi.livenessProbe | nindent 12 }}
+          {{- end }}
+          {{- if .Values.evaluationApi.readinessProbe }}
+          readinessProbe:
+            {{- toYaml .Values.evaluationApi.readinessProbe | nindent 12 }}
+          {{- end }}
+          {{- if .Values.evaluationApi.resources }}
+          resources:
+            {{- toYaml .Values.evaluationApi.resources | nindent 12 }}
+          {{- end }}
+{{- end }}

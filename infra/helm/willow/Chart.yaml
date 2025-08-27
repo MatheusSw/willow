@@ -1,0 +1,15 @@
+apiVersion: v2
+name: willow
+description: A Helm chart for Willow feature flag system
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - feature-flags
+  - dotnet
+  - redis
+  - postgresql
+maintainers:
+  - name: Willow Team
+home: https://github.com/MatheusSw/willow
+sources: [ https://github.com/MatheusSw/willow]
