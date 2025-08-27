@@ -16,7 +16,12 @@ COPY admin-domain-tests/admin-domain-tests.csproj ./admin-domain-tests/admin-dom
 
 RUN dotnet restore ./admin.sln
 
-COPY . .
+# Copy only project files and source for the admin-api to avoid including the entire build context
+# Copy solution and project files already done above, now copy source per project
+COPY admin-api/ ./admin-api/
+COPY admin-application/ ./admin-application/
+COPY admin-infrastructure/ ./admin-infrastructure/
+COPY admin-domain/ ./admin-domain/
 
 RUN dotnet publish ./admin-api/admin-api.csproj -c Release -o /app/publish /p:UseAppHost=false
 
@@ -28,6 +33,11 @@ ENV ASPNETCORE_URLS=http://0.0.0.0:8080
 EXPOSE 8080
 
 COPY --from=build /app/publish ./
+
+RUN addgroup -S nonroot \
+    && adduser -S nonroot -G nonroot
+
+USER nonroot
 
 ENTRYPOINT ["dotnet", "admin-api.dll"]
 

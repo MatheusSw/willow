@@ -17,7 +17,10 @@ COPY evaluation-domain-tests/evaluation-domain-tests.csproj ./evaluation-domain-
 RUN dotnet restore ./evaluation.sln
 
 # Copy the rest of the source
-COPY . .
+COPY evaluation-api/ ./evaluation-api/
+COPY evaluation-application/ ./evaluation-application/
+COPY evaluation-infrastructure/ ./evaluation-infrastructure/
+COPY evaluation-domain/ ./evaluation-domain/
 
 RUN dotnet publish ./evaluation-api/evaluation-api.csproj -c Release -o /app/publish /p:UseAppHost=false
 
@@ -30,5 +33,10 @@ ENV ASPNETCORE_URLS=http://0.0.0.0:8080
 EXPOSE 8080
 
 COPY --from=build /app/publish ./
+
+RUN addgroup -S nonroot \
+    && adduser -S nonroot -G nonroot
+
+USER nonroot
 
 ENTRYPOINT ["dotnet", "evaluation-api.dll"]
