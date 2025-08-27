@@ -63,6 +63,7 @@ public class Program
             builder.Services.AddStackExchangeRedisCache(options =>
             {
                 options.Configuration = builder.Configuration["Redis:Configuration"] ?? "localhost:6379";
+                
                 options.InstanceName = builder.Configuration["Redis:InstanceName"] ?? "admin-api:";
             });
 
