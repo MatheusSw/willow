@@ -1,21 +1,19 @@
 using admin_application.Interfaces;
+
 using admin_domain.Entities;
+
 using admin_infrastructure.Db;
+
 using FluentResults;
+
 using Microsoft.EntityFrameworkCore;
+
 using Serilog;
 
 namespace admin_infrastructure.Repositories.Rules;
 
-public sealed class RuleRepository : IRuleRepository
+public sealed class RuleRepository(FeatureToggleDbContext dbContext) : IRuleRepository
 {
-    private readonly FeatureToggleDbContext _dbContext;
-
-    public RuleRepository(FeatureToggleDbContext dbContext)
-    {
-        _dbContext = dbContext;
-    }
-
     public async Task<Result<Rule>> CreateAsync(Rule rule, CancellationToken cancellationToken)
     {
         var log = Log.ForContext<RuleRepository>()
@@ -41,15 +39,18 @@ public sealed class RuleRepository : IRuleRepository
                 ConditionsJson = conditionsString
             };
 
-            _dbContext.Rules.Add(entity);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            dbContext.Rules.Add(entity);
+
+            await dbContext.SaveChangesAsync(cancellationToken);
 
             log.Information("Rule Create completed");
+
             return Result.Ok(rule);
         }
         catch (DbUpdateException ex)
         {
             log.Error(ex, "Rule Create failed");
+
             return Result.Fail("Failed to create rule");
         }
     }
@@ -61,7 +62,7 @@ public sealed class RuleRepository : IRuleRepository
 
         log.Information("Rule GetById started");
 
-        var entity = await _dbContext.Rules.AsNoTracking().FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+        var entity = await dbContext.Rules.AsNoTracking().FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
         if (entity == null)
         {
             log.Information("Rule not found");
@@ -75,10 +76,11 @@ public sealed class RuleRepository : IRuleRepository
             EnvironmentId = entity.EnvironmentId,
             Priority = entity.Priority,
             MatchType = entity.MatchType == "any" ? admin_domain.Rules.MatchType.Any : admin_domain.Rules.MatchType.All,
-            Conditions = System.Text.Json.JsonSerializer.Deserialize<List<admin_domain.Rules.RuleCondition>>(entity.ConditionsJson) ?? new()
+            Conditions = System.Text.Json.JsonSerializer.Deserialize<List<admin_domain.Rules.RuleCondition>>(entity.ConditionsJson) ?? []
         };
 
         log.Information("Rule GetById completed");
+
         return Result.Ok(model);
     }
 
@@ -90,7 +92,7 @@ public sealed class RuleRepository : IRuleRepository
 
         log.Information("Rule List started");
 
-        var query = _dbContext.Rules.AsNoTracking().AsQueryable();
+        var query = dbContext.Rules.AsNoTracking().AsQueryable();
         if (featureId.HasValue)
         {
             query = query.Where(r => r.FeatureId == featureId.Value);
@@ -113,10 +115,11 @@ public sealed class RuleRepository : IRuleRepository
             EnvironmentId = r.EnvironmentId,
             Priority = r.Priority,
             MatchType = r.MatchType == "any" ? admin_domain.Rules.MatchType.Any : admin_domain.Rules.MatchType.All,
-            Conditions = System.Text.Json.JsonSerializer.Deserialize<List<admin_domain.Rules.RuleCondition>>(r.ConditionsJson) ?? new()
+            Conditions = System.Text.Json.JsonSerializer.Deserialize<List<admin_domain.Rules.RuleCondition>>(r.ConditionsJson) ?? []
         }).ToList();
 
         log.Information("Rule List completed: Count={Count}", result.Count);
+
         return Result.Ok(result);
     }
 
@@ -136,7 +139,7 @@ public sealed class RuleRepository : IRuleRepository
             var matchTypeString = rule.MatchType.ToString().ToLowerInvariant();
             var conditionsString = System.Text.Json.JsonSerializer.Serialize(rule.Conditions);
 
-            var affected = await _dbContext.Rules
+            var affected = await dbContext.Rules
                 .Where(r => r.Id == rule.Id)
                 .ExecuteUpdateAsync(setters => setters
                     .SetProperty(r => r.FeatureId, rule.FeatureId)
@@ -148,15 +151,18 @@ public sealed class RuleRepository : IRuleRepository
             if (affected == 0)
             {
                 log.Information("Rule to update not found");
+
                 return Result.Fail("NotFound");
             }
 
             log.Information("Rule Update completed");
+
             return Result.Ok(rule);
         }
         catch (DbUpdateException ex)
         {
             log.Error(ex, "Rule Update failed");
+
             return Result.Fail("Failed to update rule");
         }
     }
@@ -168,27 +174,29 @@ public sealed class RuleRepository : IRuleRepository
 
         log.Information("Rule Delete started");
 
-        var entity = await _dbContext.Rules.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+        var entity = await dbContext.Rules.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
         if (entity == null)
         {
             log.Information("Rule to delete not found");
+
             return Result.Fail("NotFound");
         }
 
-        _dbContext.Rules.Remove(entity);
+        dbContext.Rules.Remove(entity);
 
         try
         {
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
+
             log.Information("Rule Delete completed");
+
             return Result.Ok();
         }
         catch (DbUpdateException ex)
         {
             log.Error(ex, "Rule Delete failed");
+
             return Result.Fail("Failed to delete rule");
         }
     }
 }
-
-

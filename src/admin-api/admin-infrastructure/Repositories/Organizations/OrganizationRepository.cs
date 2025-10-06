@@ -1,21 +1,19 @@
 using admin_application.Interfaces;
+
 using admin_domain.Entities;
+
 using admin_infrastructure.Db;
+
 using FluentResults;
+
 using Microsoft.EntityFrameworkCore;
+
 using Serilog;
 
 namespace admin_infrastructure.Repositories.Organizations;
 
-public sealed class OrganizationRepository : IOrganizationRepository
+public sealed class OrganizationRepository(FeatureToggleDbContext dbContext) : IOrganizationRepository
 {
-    private readonly FeatureToggleDbContext _dbContext;
-
-    public OrganizationRepository(FeatureToggleDbContext dbContext)
-    {
-        _dbContext = dbContext;
-    }
-
     public async Task<Result<Organization>> CreateAsync(Organization organization, CancellationToken cancellationToken)
     {
         var log = Log.ForContext<OrganizationRepository>()
@@ -26,14 +24,19 @@ public sealed class OrganizationRepository : IOrganizationRepository
         try
         {
             var entity = new Db.Entities.Organization { Id = organization.Id, Name = organization.Name };
-            _dbContext.Organizations.Add(entity);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            dbContext.Organizations.Add(entity);
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+
             log.Information("Organization Create completed");
+
             return Result.Ok(organization);
         }
         catch (DbUpdateException ex)
         {
             log.Error(ex, "Organization Create failed");
+
             return Result.Fail("Failed to create organization");
         }
     }
@@ -45,7 +48,7 @@ public sealed class OrganizationRepository : IOrganizationRepository
 
         log.Information("Organization GetById started");
 
-        var entity = await _dbContext.Organizations.AsNoTracking().FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
+        var entity = await dbContext.Organizations.AsNoTracking().FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
         if (entity == null)
         {
             log.Information("Organization not found");
@@ -53,7 +56,9 @@ public sealed class OrganizationRepository : IOrganizationRepository
         }
 
         var model = new Organization { Id = entity.Id, Name = entity.Name };
+
         log.Information("Organization GetById completed");
+
         return Result.Ok(model);
     }
 
@@ -64,7 +69,7 @@ public sealed class OrganizationRepository : IOrganizationRepository
 
         log.Information("Organization List started");
 
-        var query = _dbContext.Organizations.AsNoTracking().AsQueryable();
+        var query = dbContext.Organizations.AsNoTracking().AsQueryable();
         if (!string.IsNullOrWhiteSpace(name))
         {
             query = query.Where(o => o.Name.Contains(name));
@@ -76,6 +81,7 @@ public sealed class OrganizationRepository : IOrganizationRepository
             .ToListAsync(cancellationToken);
 
         log.Information("Organization List completed: Count={Count}", result.Count);
+
         return Result.Ok(result);
     }
 
@@ -89,7 +95,7 @@ public sealed class OrganizationRepository : IOrganizationRepository
 
         try
         {
-            var affected = await _dbContext.Organizations
+            var affected = await dbContext.Organizations
                 .Where(o => o.Id == organization.Id)
                 .ExecuteUpdateAsync(setters => setters
                     .SetProperty(o => o.Name, organization.Name), cancellationToken);
@@ -101,11 +107,13 @@ public sealed class OrganizationRepository : IOrganizationRepository
             }
 
             log.Information("Organization Update completed");
+
             return Result.Ok(organization);
         }
         catch (DbUpdateException ex)
         {
             log.Error(ex, "Organization Update failed");
+
             return Result.Fail("Failed to update organization");
         }
     }
@@ -117,27 +125,28 @@ public sealed class OrganizationRepository : IOrganizationRepository
 
         log.Information("Organization Delete started");
 
-        var entity = await _dbContext.Organizations.FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
+        var entity = await dbContext.Organizations.FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
         if (entity == null)
         {
             log.Information("Organization to delete not found");
             return Result.Fail("NotFound");
         }
 
-        _dbContext.Organizations.Remove(entity);
+        dbContext.Organizations.Remove(entity);
 
         try
         {
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
+
             log.Information("Organization Delete completed");
+
             return Result.Ok();
         }
         catch (DbUpdateException ex)
         {
             log.Error(ex, "Organization Delete failed");
+
             return Result.Fail("Failed to delete organization");
         }
     }
 }
-
-

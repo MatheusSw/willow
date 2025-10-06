@@ -29,7 +29,6 @@
   <ItemGroup>
     <Folder Include="Db\Entities\" />
     <Folder Include="Models\Redis\" />
-    <Folder Include="Utilities\" />
     <Folder Include="Db\Migrations\" />
   </ItemGroup>
 

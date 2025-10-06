@@ -36,8 +36,8 @@ services:
 
   evaluation-api:
     build:
-      context: ..
-      dockerfile: ./src/evaluation-api/evaluation-api/Dockerfile
+      context: ../../src/evaluation-api
+      dockerfile: Dockerfile
     container_name: evaluation-api
     depends_on:
       postgres:
@@ -54,8 +54,8 @@ services:
 
   admin-api:
     build:
-      context: ..
-      dockerfile: ./src/admin-api/admin-api/Dockerfile
+      context: ../../src/admin-api
+      dockerfile: Dockerfile
     container_name: admin-api
     depends_on:
       postgres:
@@ -64,11 +64,11 @@ services:
         condition: service_healthy
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://0.0.0.0:8080
+      - ASPNETCORE_URLS=http://0.0.0.0:8081
       - Redis__Configuration=redis:6379
       - ConnectionStrings__Postgres=Host=postgres;Port=5432;Database=feature_toggle;Username=postgres;Password=postgres;
     ports:
-      - "8081:8080"
+      - "8081:8081"
 
 volumes:
   pgdata:

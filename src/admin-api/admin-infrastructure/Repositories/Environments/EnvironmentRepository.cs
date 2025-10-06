@@ -1,21 +1,19 @@
 using admin_application.Interfaces;
+
 using admin_infrastructure.Db;
+
 using FluentResults;
+
 using Microsoft.EntityFrameworkCore;
+
 using Serilog;
+
 using Environment = admin_domain.Entities.Environment;
 
 namespace admin_infrastructure.Repositories.Environments;
 
-public sealed class EnvironmentRepository : IEnvironmentRepository
+public sealed class EnvironmentRepository(FeatureToggleDbContext dbContext) : IEnvironmentRepository
 {
-    private readonly FeatureToggleDbContext _dbContext;
-
-    public EnvironmentRepository(FeatureToggleDbContext dbContext)
-    {
-        _dbContext = dbContext;
-    }
-
     public async Task<Result<Environment>> CreateAsync(Environment environment, CancellationToken cancellationToken)
     {
         var log = Log.ForContext<EnvironmentRepository>()
@@ -27,14 +25,19 @@ public sealed class EnvironmentRepository : IEnvironmentRepository
         try
         {
             var entity = new Db.Entities.EnvironmentEntity { Id = environment.Id, ProjectId = environment.ProjectId, Key = environment.Key };
-            _dbContext.Environments.Add(entity);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            dbContext.Environments.Add(entity);
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+
             log.Information("Environment Create completed");
+
             return Result.Ok(environment);
         }
         catch (DbUpdateException ex)
         {
             log.Error(ex, "Environment Create failed");
+
             return Result.Fail("Failed to create environment");
         }
     }
@@ -46,7 +49,7 @@ public sealed class EnvironmentRepository : IEnvironmentRepository
 
         log.Information("Environment GetById started");
 
-        var entity = await _dbContext.Environments.AsNoTracking().FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
+        var entity = await dbContext.Environments.AsNoTracking().FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
         if (entity == null)
         {
             log.Information("Environment not found");
@@ -54,7 +57,9 @@ public sealed class EnvironmentRepository : IEnvironmentRepository
         }
 
         var model = new Environment { Id = entity.Id, ProjectId = entity.ProjectId, Key = entity.Key };
+
         log.Information("Environment GetById completed");
+
         return Result.Ok(model);
     }
 
@@ -65,7 +70,7 @@ public sealed class EnvironmentRepository : IEnvironmentRepository
 
         log.Information("Environment List started");
 
-        var query = _dbContext.Environments.AsNoTracking().AsQueryable();
+        var query = dbContext.Environments.AsNoTracking().AsQueryable();
         if (projectId.HasValue)
         {
             query = query.Where(e => e.ProjectId == projectId.Value);
@@ -77,6 +82,7 @@ public sealed class EnvironmentRepository : IEnvironmentRepository
             .ToListAsync(cancellationToken);
 
         log.Information("Environment List completed: Count={Count}", result.Count);
+
         return Result.Ok(result);
     }
 
@@ -91,7 +97,7 @@ public sealed class EnvironmentRepository : IEnvironmentRepository
 
         try
         {
-            var affected = await _dbContext.Environments
+            var affected = await dbContext.Environments
                 .Where(e => e.Id == environment.Id)
                 .ExecuteUpdateAsync(setters => setters
                     .SetProperty(e => e.ProjectId, environment.ProjectId)
@@ -104,11 +110,13 @@ public sealed class EnvironmentRepository : IEnvironmentRepository
             }
 
             log.Information("Environment Update completed");
+
             return Result.Ok(environment);
         }
         catch (DbUpdateException ex)
         {
             log.Error(ex, "Environment Update failed");
+
             return Result.Fail("Failed to update environment");
         }
     }
@@ -120,27 +128,28 @@ public sealed class EnvironmentRepository : IEnvironmentRepository
 
         log.Information("Environment Delete started");
 
-        var entity = await _dbContext.Environments.FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
+        var entity = await dbContext.Environments.FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
         if (entity == null)
         {
             log.Information("Environment to delete not found");
             return Result.Fail("NotFound");
         }
 
-        _dbContext.Environments.Remove(entity);
+        dbContext.Environments.Remove(entity);
 
         try
         {
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
+
             log.Information("Environment Delete completed");
+
             return Result.Ok();
         }
         catch (DbUpdateException ex)
         {
             log.Error(ex, "Environment Delete failed");
+
             return Result.Fail("Failed to delete environment");
         }
     }
 }
-
-

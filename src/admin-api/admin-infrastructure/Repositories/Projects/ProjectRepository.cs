@@ -1,163 +1,162 @@
 using admin_application.Interfaces;
+
 using admin_domain;
+
 using admin_infrastructure.Db;
 using admin_infrastructure.Db.Entities;
+
 using FluentResults;
+
 using Microsoft.EntityFrameworkCore;
+
 using Serilog;
+
 using Project = admin_domain.Entities.Project;
 
 namespace admin_infrastructure.Repositories.Projects;
 
-public sealed class ProjectRepository : IProjectRepository
+public sealed class ProjectRepository(FeatureToggleDbContext dbContext) : IProjectRepository
 {
-    private readonly FeatureToggleDbContext _dbContext;
+	public async Task<Result<Project>> CreateAsync(Project project, CancellationToken cancellationToken)
+	{
+		var log = Log.ForContext<ProjectRepository>()
+			.ForContext("OrgId", project.OrgId)
+			.ForContext("Name", project.Name);
 
-    public ProjectRepository(FeatureToggleDbContext dbContext)
-    {
-        _dbContext = dbContext;
-    }
+		log.Information("Project Create started");
 
-    public async Task<Result<Project>> CreateAsync(Project project, CancellationToken cancellationToken)
-    {
-        var log = Log.ForContext<ProjectRepository>()
-            .ForContext("OrgId", project.OrgId)
-            .ForContext("Name", project.Name);
+		try
+		{
+			var entity = new Db.Entities.Project { Id = project.Id, OrgId = project.OrgId, Name = project.Name };
 
-        log.Information("Project Create started");
+			dbContext.Projects.Add(entity);
 
-        try
-        {
-            var entity = new Db.Entities.Project { Id = project.Id, OrgId = project.OrgId, Name = project.Name };
+			await dbContext.SaveChangesAsync(cancellationToken);
 
-            _dbContext.Projects.Add(entity);
+			log.Information("Project Create completed");
 
-            await _dbContext.SaveChangesAsync(cancellationToken);
+			return Result.Ok(project);
+		}
+		catch (DbUpdateException ex)
+		{
+			log.Error(ex, "Project Create failed");
 
-            log.Information("Project Create completed");
+			return Result.Fail("Failed to create project");
+		}
+	}
 
-            return Result.Ok(project);
-        }
-        catch (DbUpdateException ex)
-        {
-            log.Error(ex, "Project Create failed");
+	public async Task<Result<Project>> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+	{
+		var log = Log.ForContext<ProjectRepository>()
+			.ForContext("Id", id);
 
-            return Result.Fail("Failed to create project");
-        }
-    }
+		log.Information("Project GetById started");
 
-    public async Task<Result<Project>> GetByIdAsync(Guid id, CancellationToken cancellationToken)
-    {
-        var log = Log.ForContext<ProjectRepository>()
-            .ForContext("Id", id);
+		var entity = await dbContext.Projects.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+		if (entity == null)
+		{
+			log.Information("Project not found");
 
-        log.Information("Project GetById started");
+			return Result.Fail("NotFound");
+		}
 
-        var entity = await _dbContext.Projects.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
-        if (entity == null)
-        {
-            log.Information("Project not found");
+		var model = new Project { Id = entity.Id, OrgId = entity.OrgId, Name = entity.Name };
 
-            return Result.Fail("NotFound");
-        }
+		log.Information("Project GetById completed");
 
-        var model = new Project { Id = entity.Id, OrgId = entity.OrgId, Name = entity.Name };
+		return Result.Ok(model);
+	}
 
-        log.Information("Project GetById completed");
+	public async Task<Result<List<Project>>> ListAsync(Guid? orgId, CancellationToken cancellationToken)
+	{
+		var log = Log.ForContext<ProjectRepository>()
+			.ForContext("OrgId", orgId);
 
-        return Result.Ok(model);
-    }
+		log.Information("Project List started");
 
-    public async Task<Result<List<Project>>> ListAsync(Guid? orgId, CancellationToken cancellationToken)
-    {
-        var log = Log.ForContext<ProjectRepository>()
-            .ForContext("OrgId", orgId);
+		var query = dbContext.Projects.AsNoTracking().AsQueryable();
+		if (orgId.HasValue)
+		{
+			query = query.Where(projectEntity => projectEntity.OrgId == orgId.Value);
+		}
 
-        log.Information("Project List started");
+		var result = await query
+			.OrderBy(projectEntity => projectEntity.Name)
+			.Select(projectEntity => new Project
+			{ Id = projectEntity.Id, OrgId = projectEntity.OrgId, Name = projectEntity.Name })
+			.ToListAsync(cancellationToken);
 
-        var query = _dbContext.Projects.AsNoTracking().AsQueryable();
-        if (orgId.HasValue)
-        {
-            query = query.Where(projectEntity => projectEntity.OrgId == orgId.Value);
-        }
+		log.Information("Project List completed: Count={Count}", result.Count);
 
-        var result = await query
-            .OrderBy(projectEntity => projectEntity.Name)
-            .Select(projectEntity => new Project
-            { Id = projectEntity.Id, OrgId = projectEntity.OrgId, Name = projectEntity.Name })
-            .ToListAsync(cancellationToken);
+		return Result.Ok(result);
+	}
 
-        log.Information("Project List completed: Count={Count}", result.Count);
+	public async Task<Result<Project>> UpdateAsync(Project project, CancellationToken cancellationToken)
+	{
+		var log = Log.ForContext<ProjectRepository>()
+			.ForContext("Id", project.Id)
+			.ForContext("OrgId", project.OrgId)
+			.ForContext("Name", project.Name);
 
-        return Result.Ok(result);
-    }
+		log.Information("Project Update started");
 
-    public async Task<Result<Project>> UpdateAsync(Project project, CancellationToken cancellationToken)
-    {
-        var log = Log.ForContext<ProjectRepository>()
-            .ForContext("Id", project.Id)
-            .ForContext("OrgId", project.OrgId)
-            .ForContext("Name", project.Name);
+		try
+		{
+			var affected = await dbContext.Projects
+				.Where(projectEntity => projectEntity.Id == project.Id)
+				.ExecuteUpdateAsync(projectSetters => projectSetters
+					.SetProperty(projectEntity => projectEntity.OrgId, project.OrgId)
+					.SetProperty(projectEntity => projectEntity.Name, project.Name), cancellationToken);
 
-        log.Information("Project Update started");
+			if (affected == 0)
+			{
+				log.Information("Project to update not found");
 
-        try
-        {
-            var affected = await _dbContext.Projects
-                .Where(projectEntity => projectEntity.Id == project.Id)
-                .ExecuteUpdateAsync(projectSetters => projectSetters
-                    .SetProperty(projectEntity => projectEntity.OrgId, project.OrgId)
-                    .SetProperty(projectEntity => projectEntity.Name, project.Name), cancellationToken);
+				return Result.Fail("NotFound");
+			}
 
-            if (affected == 0)
-            {
-                log.Information("Project to update not found");
+			log.Information("Project Update completed");
 
-                return Result.Fail("NotFound");
-            }
+			return Result.Ok(project);
+		}
+		catch (DbUpdateException ex)
+		{
+			log.Error(ex, "Project Update failed");
 
-            log.Information("Project Update completed");
+			return Result.Fail("Failed to update project");
+		}
+	}
 
-            return Result.Ok(project);
-        }
-        catch (DbUpdateException ex)
-        {
-            log.Error(ex, "Project Update failed");
+	public async Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken)
+	{
+		var log = Log.ForContext<ProjectRepository>()
+			.ForContext("Id", id);
 
-            return Result.Fail("Failed to update project");
-        }
-    }
+		log.Information("Project Delete started");
 
-    public async Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken)
-    {
-        var log = Log.ForContext<ProjectRepository>()
-            .ForContext("Id", id);
+		var entity = await dbContext.Projects.FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+		if (entity == null)
+		{
+			log.Information("Project to delete not found");
 
-        log.Information("Project Delete started");
+			return Result.Fail("NotFound");
+		}
 
-        var entity = await _dbContext.Projects.FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
-        if (entity == null)
-        {
-            log.Information("Project to delete not found");
+		dbContext.Projects.Remove(entity);
 
-            return Result.Fail("NotFound");
-        }
+		try
+		{
+			await dbContext.SaveChangesAsync(cancellationToken);
 
-        _dbContext.Projects.Remove(entity);
+			log.Information("Project Delete completed");
 
-        try
-        {
-            await _dbContext.SaveChangesAsync(cancellationToken);
+			return Result.Ok();
+		}
+		catch (DbUpdateException ex)
+		{
+			log.Error(ex, "Project Delete failed");
 
-            log.Information("Project Delete completed");
-
-            return Result.Ok();
-        }
-        catch (DbUpdateException ex)
-        {
-            log.Error(ex, "Project Delete failed");
-
-            return Result.Fail("Failed to delete project");
-        }
-    }
+			return Result.Fail("Failed to delete project");
+		}
+	}
 }

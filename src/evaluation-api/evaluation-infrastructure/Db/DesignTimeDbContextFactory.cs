@@ -11,6 +11,7 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<FeatureTog
 
         //TODO: Fix this to use the actual connection string from appsettings or environment
         optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=feature_toggle;Username=postgres;Password=postgres;");
+        
         return new FeatureToggleDbContext(optionsBuilder.Options);
     }
 }
